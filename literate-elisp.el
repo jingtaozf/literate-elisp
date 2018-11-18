@@ -51,7 +51,7 @@ have an associated file.")
   "This dynamic variable will be bound by our read functions
 while parsing is in progress.  It'll indicate whether we are inside a elisp code blocks or not.")
 
-(defvar literate-reader-debug-p t)
+(defvar literate-reader-debug-p nil)
 
 (defun literate-make-stream (in)
   "Given an input stream (which can be a buffer, a marker, a
