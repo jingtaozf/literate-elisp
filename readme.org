@@ -44,18 +44,26 @@ can be loaded directlly if such code block is designed to be loaded directlly.
 (literate-load "readme.org")
 #+END_SRC
 * demo routines
-As a demo org file, we write a simple demo macro ~aif~ here.
-#+BEGIN_SRC elisp
+- a demo macro ~aif~ \\
+  As a demo org file, we write a simple demo macro ~aif~ here.
+  #+BEGIN_SRC elisp
 (defmacro aif (test then &optional else)
-  "Just like IF-BIND but the var is always IT."
-  `(if-bind it ,test ,then ,else))
-#+END_SRC
+    "Just like IF-BIND but the var is always IT."
+    `(if-bind it ,test ,then ,else))
+  #+END_SRC
 
-You can use it like this
-#+BEGIN_SRC elisp :tangle no
+  You can use it like this
+  #+BEGIN_SRC elisp :tangle no
 (aif (and (y-or-n-p "Try it")
-          10)
-  (message "it is %s" it))
-#+END_SRC
-after loading this org file by function ~literate-load~, you can use macro ~aif~ directlly in your other elisp files.
+            10)
+    (message "it is %s" it))
+  #+END_SRC
+  after loading this org file by function ~literate-load~, you can use macro ~aif~ directlly in your other elisp files.
 
+- a demo emacs configuration \\
+  Of course the one purpose of this library is to write emacs configurations directtly in a org file.
+  For examle, I can write elisp configurations directlly in this file:
+  - enable org mode for org files
+    #+BEGIN_SRC elisp
+  (add-to-list 'auto-mode-alist '("\\.\\(org\\|org_archive\\)$" . org-mode))  
+    #+END_SRC
