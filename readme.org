@@ -15,10 +15,10 @@
 
 This is a demo file to show a way how to use [[http://www.literateprogramming.com/][literal programming]] in emacs lisp.
 
-This library is just a alpha version without detailed documentation.
+This library is just an alpha version without detailed documentation([[./literate-elisp.org]]).
 
-It export a elisp function ~literate-load~ and will load elisp codes in all elisp code blocks 
-surrounded by ~#+begin_src lisp~ and ~#+end_src~
+It export an elisp function ~literate-load~ and this function can load elisp codes in all elisp code blocks 
+surrounded by ~#+begin_src lisp~ and ~#+end_src~ in an org file directlly.
 #+BEGIN_EXAMPLE
    ,#+BEGIN_SRC elisp :tangle yes
    (message "this is a test.~%")
@@ -38,7 +38,7 @@ The org file should be opened with [[https://polymode.github.io/][polymode]],the
 #+END_SRC
 * load this org file 
 
-This org file can be directlly loaded by elisp function ~literate-load~ and all elisp code blocks in this org file
+This org file can be loaded by elisp function ~literate-load~ directlly and all elisp code blocks in this org file
 can be loaded directlly if such code block is designed to be loaded directlly.
 #+BEGIN_SRC elisp :tangle no
 (literate-load "readme.org")
