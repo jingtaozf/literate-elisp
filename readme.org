@@ -25,6 +25,9 @@ surrounded by ~#+begin_src lisp~ and ~#+end_src~ in an org file directlly.
    ,#+END_SRC
 #+END_EXAMPLE
 
+And if you have defined elisp variables and functions in this org file, you can jump to the position of 
+their defintiions directlly by elisp's source code navigation feature.
+
 * Preparation
 ** install polymode in emacs
 The org file should be opened with [[https://polymode.github.io/][polymode]],the following elisp scripts should be added in .emacs
