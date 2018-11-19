@@ -1,0 +1,17 @@
+# -*- encoding:utf-8 Mode: POLY-ORG;  -*- --- 
+#+PROPERTY:    header-args        :results silent   :eval no-export   :comments org
+#+OPTIONS:     num:nil toc:nil todo:nil tasks:nil tags:nil
+#+OPTIONS:     skip:nil author:nil email:nil creator:nil timestamp:t
+#+INFOJS_OPT:  view:nil toc:nil ltoc:t mouse:underline buttons:0 path:http://orgmode.org/org-info.js
+* Introduction
+
+An emacs library or configuation file can be written in org mode then tangle to an elisp file later,
+here is one example: [[https://github.com/larstvei/dot-emacs][Emacs configurations written in Org mode]] .
+
+But What if I want to write library or configuration in org file and loaded by emacs directlly?
+If it can be done, then we will have an uniform development environment without keep multiple copies
+of codes, furturemore, we can jump to the definition into the org file directlly to change them.
+That will be an convinient way for our daily development.
+* How to do it?
+
+# Fortunatelly, this can be done by this library [[
