@@ -61,7 +61,7 @@ can be loaded directlly if such code block is designed to be loaded directlly.
   after loading this org file by function ~literate-load~, you can use macro ~aif~ directlly in your other elisp files.
 
 - a demo emacs configuration \\
-  Of course the one purpose of this library is to write emacs configurations directtly in a org file.
+  Of course the one purpose of this library is to write emacs configuration directtly in an org file. \\
   For examle, I can write elisp configurations directlly in this file:
   - enable org mode for org files
     #+BEGIN_SRC elisp
