@@ -157,7 +157,7 @@ true."
 dynamic extent of some `read' function."
   (literate-orig-read in))
 
-(defun literate-read-char ()
+(defun literate-read-char (in)
   "Read a character from the current stream.  It defers to
 `literate-orig-read' and thus this should only be called within the
 dynamic extent of some `read' function."
