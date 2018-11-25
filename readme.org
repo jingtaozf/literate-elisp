@@ -70,3 +70,9 @@ can be loaded directlly if such code block is designed to be loaded directlly.
     #+BEGIN_SRC elisp
   (add-to-list 'auto-mode-alist '("\\.\\(org\\|org_archive\\)$" . org-mode))  
     #+END_SRC
+    
+Then to load routines and configurations in this org file, I add the following codes in my ~.emacs~
+#+BEGIN_SRC elisp :tangle no
+(load "~/projects/literate-elisp/literate-elisp.el")
+(literate-load "~/projects/literate-elisp/readme.org")
+#+END_SRC
