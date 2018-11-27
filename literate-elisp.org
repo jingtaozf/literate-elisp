@@ -1,4 +1,5 @@
 # -*- encoding:utf-8 Mode: POLY-ORG;  -*- --- 
+#+Startup: noindent
 #+PROPERTY:    header-args        :results silent   :eval no-export   :comments org
 #+OPTIONS:     num:nil toc:nil todo:nil tasks:nil tags:nil
 #+OPTIONS:     skip:nil author:nil email:nil creator:nil timestamp:t
