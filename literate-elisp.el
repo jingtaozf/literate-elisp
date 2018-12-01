@@ -379,6 +379,12 @@ character is encountered this will produce an error."
 (defun literate-load (path)
   (let ((load-read-function (symbol-function 'literate-read))
         (*literate-read-inside-org-code-blocks* nil))
-  (load path)))
+    (load path)))
+
+(defun literate-load-file (file)
+  "Load the Lisp file named FILE."
+  ;; This is a case where .elc and .so/.dll make a lot of sense.
+  (interactive (list (read-file-name "Load org file: " nil nil 'lambda)))
+  (literate-load (expand-file-name file)))
 
 (provide 'literate-reader)
