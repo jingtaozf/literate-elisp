@@ -355,7 +355,7 @@ character is encountered this will produce an error."
 
 (defun literate-read (&optional in)
   (if (and load-file-name
-          (string-match "\\.org$" load-file-name))
+          (string-match "\\.org\\'" load-file-name))
     (let ((*literate-read-filename* (literate-get-filename)))
       (literate-read-datum (literate-make-stream in)))
     (funcall *literate-orig-read* in)))
