@@ -20,6 +20,7 @@
 This is a demo file to show a way how to use [[http://www.literateprogramming.com/][literal programming]] in emacs lisp.
 
 This library is just an alpha version without detailed documentation([[./literate-elisp.org]]).
+The implementation details of [[https://github.com/jingtaozf/literate-elisp][literate-elisp]] can be found in file [[./literate-elisp.org]] ([[./literate-elisp.pdf][pdf version]]).
 
 It export an elisp function ~literate-load~ and this function can load elisp codes in all elisp code blocks 
 surrounded by ~#+begin_src lisp~ and ~#+end_src~ in an org file directlly.
