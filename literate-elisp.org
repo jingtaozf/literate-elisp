@@ -5,7 +5,7 @@
 #+LATEX_HEADER: % copied from lstlang1.sty
 #+LATEX_HEADER: \lstdefinelanguage{elisp}[]{lisp} {}
 #+LATEX_HEADER: \lstloadlanguages{elisp}
-* Table of Contents                                                   :TOC:
+* Table of Contents                                            :TOC:noexport:
 - [[#introduction][Introduction]]
 - [[#how-to-do-it][How to do it?]]
 - [[#implementation][Implementation]]
@@ -66,8 +66,9 @@ It'll indicate whether org mode syntax is used or elisp mode syntax is used in a
 (defvar literate-inside-org-code-blocks-p nil)
 #+END_SRC
 ** stream read functions
-In org mode syntax, stream read functions for example character ~peek~ or ~next~ actions are
-required to read from [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Input-Streams.html#Input-Streams][input streams]] ,which is the input stream used by the original elisp [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Input-Functions.html#Input-Functions][read]] function.
+stream read functions such as character ~peek~ or ~next~ are
+required to read from [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Input-Streams.html#Input-Streams][input streams]],
+which is the same input stream used by the original elisp [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Input-Functions.html#Input-Functions][read]] function.
 *** literate-peek
 #+BEGIN_SRC elisp
 (defun literate-peek (in)
@@ -236,7 +237,7 @@ and be careful about some special characters.
   (literate-load (expand-file-name file)))
 #+END_SRC
 
-*** byte compile an literate org file
+*** byte compile an literate org file (TODO)
 #+BEGIN_SRC elisp
 (defun literate-byte-compile-file (file)
   "byte compile an org file."
@@ -244,6 +245,7 @@ and be careful about some special characters.
 #+END_SRC
 
 *** tangle org file to elisp file
+A function is provided to build an emacs lisp file from an org file.
 #+BEGIN_SRC elisp
 (cl-defun literate-tangle (file &optional (el-file (concat (file-name-sans-extension file) ".el")))
   (let* ((source-buffer (find-file-noselect file))
