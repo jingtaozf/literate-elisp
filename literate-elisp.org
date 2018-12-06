@@ -61,7 +61,7 @@ a debug variable is used to switch on/off the log messages for this library
 #+END_SRC
 
 a dynamic boolean variable to be bound by our read functions while parsing is in progress.
-It'll indicate whether org mode syntax is used elisp mode syntax is used in an elisp code block.
+It'll indicate whether org mode syntax is used or elisp mode syntax is used in an elisp code block.
 #+BEGIN_SRC elisp
 (defvar literate-inside-org-code-blocks-p nil)
 #+END_SRC
