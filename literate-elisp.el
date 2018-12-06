@@ -3,9 +3,10 @@
 ;; Copyright (C) 2018-2019 Jingtao Xu
 
 ;; Author: Jingtao Xu <jingtaozf@gmail.com>
-;; Keywords: lisp literate
+;; Created: 2018-12-06
+;; Version: 0.1
+;; Keywords: elisp literate org
 ;; URL: https://github.com/jingtaozf/literate-elisp
-;; Version: 0
 
 ;;;; Commentary:
 
