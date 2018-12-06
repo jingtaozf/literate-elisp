@@ -74,7 +74,8 @@ which is the same input stream used by the original elisp [[https://www.gnu.org/
 *** literate-peek
 #+BEGIN_SRC elisp
 (defun literate-peek (in)
-  "return the next character without dropping it from the stream."
+  "Return the next character without dropping it from the stream.
+Argument IN: input stream."
   (cond ((bufferp in)
          (with-current-buffer in
            (when (not (eobp))
@@ -92,7 +93,8 @@ which is the same input stream used by the original elisp [[https://www.gnu.org/
 *** literate-next
 #+BEGIN_SRC elisp
 (defun literate-next (in)
-  "Given a stream function, return and discard the next character."
+  "Given a stream function, return and discard the next character.
+Argument IN: input stream."
   (cond ((bufferp in)
          (with-current-buffer in
            (when (not (eobp))
@@ -111,9 +113,9 @@ which is the same input stream used by the original elisp [[https://www.gnu.org/
 *** literate-read-while
 #+BEGIN_SRC elisp
 (defun literate-read-while (in pred)
-  "Read and return a string from the input stream, as long as the
-predicate--which will be called for each character--returns
-true."
+  "Read and return a string from the input stream, as long as the predicate.
+Argument IN: input stream.
+Argument PRED: predicate function."
   (let ((chars (list)) ch)
     (while (and (setq ch (literate-peek in))
                 (funcall pred ch))
@@ -123,7 +125,8 @@ true."
 *** literate-skip-to-end-of-line
 #+BEGIN_SRC elisp
 (defun literate-skip-to-end-of-line (in)
-  "Skip over a comment (move to end-of-line)."
+  "Skip over a comment (move to `end-of-line').
+Argument IN: input stream."
   (prog1
     (literate-read-while in (lambda (ch)
                               (not (eq ch ?\n))))
@@ -144,6 +147,8 @@ a new org code block option ~tangle~ is defined after ~#+BEGIN_SRC elisp~,and it
   It means that current code block should be ignored by lisp reader.
 #+BEGIN_SRC elisp
 (defun literate-tangle-p (flag)
+  "Tangle current elisp code block or not
+Argument FLAG: flag symbol."
   (case flag
     (no nil)
     (t t)))
@@ -153,6 +158,8 @@ Let's implement a function to read options after ~#+BEGIN_SRC~,
 and convert every key and value to a elisp symbol.
 #+BEGIN_SRC elisp
 (defun literate-read-org-options (options)
+  "Read org code block options.
+Argument OPTIONS: a string to hold the options."
   (loop for token in (split-string options)
         collect (intern token)))
 #+END_SRC
@@ -163,7 +170,8 @@ the basic idea is very simple, ignore all lines out of elisp source block,
 and be careful about some special characters.
 #+BEGIN_SRC elisp
 (defun literate-read-datum (in)
-  "Read and return a Lisp datum from the input stream."
+  "Read and return a Lisp datum from the input stream.
+Argment IN: input stream."
   (let ((ch (literate-peek in)))
     (cond
       ((not ch)
@@ -185,6 +193,8 @@ and be careful about some special characters.
 #+BEGIN_SRC elisp
 (defvar literate-elisp-begin-src-id "#+BEGIN_SRC elisp")
 (defun literate-read-after-sharpsign (in)
+  "Read after #.
+Argument IN: input stream."
   (literate-next in)
   (cond ((not literate-elisp-org-code-blocks-p)
          (if (loop for i from 1 below (length literate-elisp-begin-src-id)
@@ -220,12 +230,16 @@ and be careful about some special characters.
 *** use the literate reader when load org file
 #+BEGIN_SRC elisp
 (defun literate-read (&optional in)
+  "Literate read function.
+Argument IN: input stream."
   (if (and load-file-name
            (string-match "\\.org\\'" load-file-name))
     (literate-read-datum in)
     (read in)))
 
 (defun literate-load (path)
+  "Literate load function.
+Argument PATH: target file to load."
   (let ((load-read-function (symbol-function 'literate-read))
         (literate-elisp-org-code-blocks-p nil))
     (load path)))
@@ -234,7 +248,8 @@ and be careful about some special characters.
 *** provide a command to load literate org file directlly from emacs
 #+BEGIN_SRC elisp
 (defun literate-load-file (file)
-  "Load the Lisp file named FILE."
+  "Load the Lisp file named FILE.
+Argument FILE: target file path."
   ;; This is a case where .elc and .so/.dll make a lot of sense.
   (interactive (list (read-file-name "Load org file: " nil nil 'lambda)))
   (literate-load (expand-file-name file)))
@@ -243,7 +258,8 @@ and be careful about some special characters.
 *** byte compile an literate org file (TODO)
 #+BEGIN_SRC elisp
 (defun literate-byte-compile-file (file)
-  "byte compile an org file."
+  "Byte compile an org file.
+Argument FILE: file to compile."
   )
 #+END_SRC
 
@@ -251,6 +267,8 @@ and be careful about some special characters.
 A function is provided to build an emacs lisp file from an org file.
 #+BEGIN_SRC elisp
 (cl-defun literate-tangle (file &key (el-file (concat (file-name-sans-extension file) ".el")) header tail)
+  "Literate tangle
+Argument FILE: target file"
   (let* ((source-buffer (find-file-noselect file))
          (target-buffer (find-file-noselect el-file))
          (load-read-function (symbol-function 'literate-read))
@@ -260,7 +278,8 @@ A function is provided to build an emacs lisp file from an org file.
       (when header
         (insert header "\n"))
       (insert ";; This file is automatically generated by `literate-tangle' from file `"
-              (pathname-name file) "." (pathname-type file) "'\n\n")
+              (pathname-name file) "." (pathname-type file) "'\n\n"
+              ";;; Code:\n\n")
       (insert
        (with-output-to-string 
            (with-current-buffer source-buffer
