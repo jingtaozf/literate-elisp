@@ -295,4 +295,4 @@ the following code should be executed.
 ;;; literate-elisp.el ends here
 ")
 #+END_SRC
-The header lines are required by [[https://github.com/melpa/melpa/blob/master/CONTRIBUTING.org][MELPA]] respository. 
+The head and tail lines are required by [[https://github.com/melpa/melpa/blob/master/CONTRIBUTING.org][MELPA]] respository. 
