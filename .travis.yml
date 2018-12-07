@@ -1,0 +1,24 @@
+language: emacs
+
+env:
+  - EMACS=emacs23
+  - EMACS=emacs24
+
+install:
+  - if [ "$EMACS" = "emacs23" ]; then
+        sudo apt-get -qq update &&
+        sudo apt-get -qq -f install &&
+        sudo apt-get -qq install emacs23-nox;
+    fi
+  - if [ "$EMACS" = "emacs24" ]; then
+        sudo add-apt-repository -y ppa:cassou/emacs &&
+        sudo apt-get -qq update &&
+        sudo apt-get -qq -f install &&
+        sudo apt-get -qq install emacs24-nox;
+    fi
+
+script:
+  - $EMACS -Q -L . \
+    --eval "(load \"literate-elisp.el\")" \
+    --eval "(literate-load \"readme.org\")"
+
