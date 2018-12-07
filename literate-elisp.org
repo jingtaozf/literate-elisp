@@ -13,7 +13,7 @@
   - [[#stream-read-functions][stream read functions]]
   - [[#handle-org-mode-syntax][handle org mode syntax]]
   - [[#load-org-file-with-new-syntax][load org file with new syntax]]
-  - [[#tangle-org-file-to-elisp-file][tangle org file to elisp file]]
+  - [[#function-to-tangle-org-file-to-elisp-file][function to tangle org file to elisp file]]
 
 * Introduction
 
@@ -162,7 +162,7 @@ Argument FLAG: flag symbol."
     (t t)))
 #+END_SRC
   
-Let's implement a function to read options after ~#+BEGIN_SRC~,
+Let's implement a function to read options after ~#+BEGIN_SRC elisp~,
 and convert every key and value to a elisp symbol.
 #+BEGIN_SRC elisp
 (defun literate-read-org-options (options)
@@ -196,14 +196,16 @@ Argment IN: input stream."
 #+END_SRC
 *** how to handle when meet ~#~
 **** The basic logic
-   1. then it is inside an org syntax, check if it is ~#+begin_src elisp~
+   1. if it is inside an org syntax, check if it is ~#+begin_src elisp~
       1. if it is not, continue to use org syntax and ignore this line
       2. if it is, read source block options for this code block
          1. if it should be tangled, switch to elisp syntax context
          2. if it should not be tangled, continue to use org syntax and ignore this line
    2. if it is inside an elisp syntax, then check if it is ~#+~
-      1. if it is, then switch to org mode syntax.
-      2. if it is not, then use origial elip reader to read the following stream\\
+      1. if it is, then switch to org mode syntax.\\
+         because this is the only legal meaning when it is equal to `#+end_src',
+         so the test here is a little simple.
+      2. if it is not, then use original elip reader to read the following stream\\
          it should be some legal elisp expressions such like ~#'(lambda ())~.
 
 **** The implementation
@@ -247,12 +249,12 @@ Argument IN: input stream."
                   (message "found org elisp end block:%s" line)))
              ;; 2.2. if it is, then switch to org mode syntax. 
               (setf literate-elisp-org-code-blocks-p nil))
-             ;; 2.3 if it is not, then use origial elip reader to read the following stream
+             ;; 2.3 if it is not, then use original elip reader to read the following stream
              (t (read in)))))))
 #+END_SRC
 
 ** load org file with new syntax
-*** use the literate reader when load org file
+*** literate reader is used when loading a org file
 #+BEGIN_SRC elisp
 (defun literate-read (&optional in)
   "Literate read function.
@@ -270,7 +272,7 @@ Argument PATH: target file to load."
     (load path)))
 #+END_SRC
 
-*** provide a command to load literate org file directly from emacs
+*** an interactive command is provided to load a literate org file directly from emacs
 #+BEGIN_SRC elisp
 (defun literate-load-file (file)
   "Load the Lisp file named FILE.
@@ -280,7 +282,7 @@ Argument FILE: target file path."
   (literate-load (expand-file-name file)))
 #+END_SRC
 
-*** byte compile an literate org file (TODO)
+*** a function to byte compile a literate org file (TODO)
 #+BEGIN_SRC elisp
 (defun literate-byte-compile-file (file)
   "Byte compile an org file.
@@ -288,7 +290,7 @@ Argument FILE: file to compile."
   )
 #+END_SRC
 
-** tangle org file to elisp file
+** function to tangle org file to elisp file
 A function is provided to build an emacs lisp file from an org file.
 #+BEGIN_SRC elisp
 (cl-defun literate-tangle (file &key (el-file (concat (file-name-sans-extension file) ".el")) header tail)
