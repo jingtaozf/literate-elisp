@@ -74,6 +74,7 @@ stream read actions such as ~peek a character~ or ~read and drop next character~
 required.
 
 The [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Input-Streams.html#Input-Streams][input streams]] are the same streams used by the original elisp [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Input-Functions.html#Input-Functions][read]] function.
+*** literate-peek
 #+BEGIN_SRC elisp
 (defun literate-peek (in)
   "Return the next character without dropping it from the stream.
@@ -208,7 +209,6 @@ Argment IN: input stream."
          so the test here is a little simple.
       2. if it is not, then use original elip reader to read the following stream\\
          it should be some legal elisp expressions such like ~#'(lambda ())~.
-
 **** The implementation
 #+BEGIN_SRC elisp
 (defvar literate-elisp-begin-src-id "#+BEGIN_SRC elisp")
