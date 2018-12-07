@@ -18,7 +18,7 @@ install:
     fi
 
 script:
-  - $EMACS -Q -L . \
+  - $EMACS -Q --batch -L . \
     --eval "(load \"literate-elisp.el\")" \
     --eval "(literate-load \"readme.org\")" \
     --eval "(kill-emacs 0)"

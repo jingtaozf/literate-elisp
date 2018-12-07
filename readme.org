@@ -4,6 +4,9 @@
 #+OPTIONS:     num:nil toc:nil todo:nil tasks:nil tags:nil
 #+OPTIONS:     skip:nil author:nil email:nil creator:nil timestamp:t
 #+INFOJS_OPT:  view:nil toc:nil ltoc:t mouse:underline buttons:0 path:http://orgmode.org/org-info.js
+
+[[https://travis-ci.com/jingtaozf/literate-elisp][file:https://travis-ci.com/jingtaozf/literate-elisp.svg?branch=master]]
+
 * Table of Contents                                                   :TOC:
 - [[#introduction][Introduction]]
 - [[#preparation][Preparation]]
