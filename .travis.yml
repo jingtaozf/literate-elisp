@@ -20,5 +20,6 @@ install:
 script:
   - $EMACS -Q -L . \
     --eval "(load \"literate-elisp.el\")" \
-    --eval "(literate-load \"readme.org\")"
+    --eval "(literate-load \"readme.org\")" \
+    --eval "(kill-emacs 0)"
 
