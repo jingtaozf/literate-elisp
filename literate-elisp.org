@@ -2,7 +2,7 @@
 #+TITLE:  elisp literate library
 #+SubTitle: a literate programming tool to write emacs lisp codes in org mode.
 #+Startup: noindent
-#+LATEX_HEADER: % copied from lstlang1.sty
+#+LATEX_HEADER: % copied from lstlang1.sty, to add new language support to elisp.
 #+LATEX_HEADER: \lstdefinelanguage{elisp}[]{lisp} {}
 #+LATEX_HEADER: \lstloadlanguages{elisp}
 * Table of Contents                                            :TOC:noexport:
@@ -20,10 +20,10 @@
 An emacs library or configuation file can be written in org mode then is tangled to an elisp file later,
 here is one example: [[https://github.com/larstvei/dot-emacs][Emacs configurations written in Org mode]] .
 
-But What if I want to write a library or a configuration file in org file and loaded by emacs directlly?
-If it can be done, then we will have an uniform development environment without keep multiple copies
-of codes. Furturemore, we can jump to the definition into the org file directlly to change them.
-That will be an convinient way for our daily development.
+But What if I want to write a library or a configuration file in org file and  load it to emacs directly?
+If it can be done, then we will have an uniform development environment without keeping multiple copies
+of codes. Furturemore, we can jump to the elisp definition in an org file directly when required.
+That will be a convinient way for our daily development.
 * How to do it?
 In org mode, the comment line start with character ~#~ (see [[https://orgmode.org/manual/Comment-lines.html][org manual]] ), 
 and the emacs lisp codes are surrounded by lines between ~#+begin_src elisp~ and ~#+end_src~ 
@@ -35,24 +35,24 @@ and the emacs lisp codes are surrounded by lines between ~#+begin_src elisp~ and
    ,#+END_SRC
 #+END_EXAMPLE
 
-So to let emacs lisp can read an org file directlly, all lines out of surrounding
+So to let emacs lisp can read an org file directly, all lines out of surrounding
 by ~#+begin_src elisp~ and ~#+end_src~ should be ignored, 
 and even codes surrounding by them should be ignored 
 if the options in a code block request such behaviour.
 
 Here is a trick, a new emacs lisp reader function is specified
 (by binding elisp variable [[https://www.gnu.org/software/emacs/manual/html_node/elisp/How-Programs-Do-Loading.html][load-read-function]]) to replace original ~read~ function when
-using elisp function ~load~ to load this org file.
+using elisp function ~load~ to load a org file.
 
-It will make elisp reader enter into org mode syntax, 
-then ignore all lines after that until it meet ~#+BEGIN_SRC lisp~.
+The new reader will make elisp reader enter into org mode syntax, 
+which means it will ignore all lines until it meet ~#+BEGIN_SRC lisp~.
 
 When ~#+begign_src elisp~ is met, all org options for this code block will be read and it give us
 a chance to switch back to normal emacs lisp reader or not.
 
-And if it switch back to normal emacs lisp reader, the end line ~#+END_SRC~ should be checked,
-if it is, then emacs lisp reader will switch back to org mode syntax.
-if it is not, emacs lisp reader will continue to read subsequent stream 
+And if it switch back to normal emacs lisp reader, the end line ~#+END_SRC~ should be catched,
+if it is catchd, then the reader will switch back to org mode syntax.
+if it is not, then the reader will continue to read subsequent stream 
 as like the original emacs lisp reader.
 
 * Implementation
@@ -62,16 +62,17 @@ a debug variable is used to switch on/off the log messages for this library
 (defvar literate-elisp-debug-p nil)
 #+END_SRC
 
-a dynamic boolean variable to be bound by our read functions while parsing is in progress.
-It'll indicate whether org mode syntax is used or elisp mode syntax is used in an elisp code block.
+a dynamic boolean variable to be bound by our read function while parsing is in progress.
+It'll indicate whether org mode syntax is used or elisp mode syntax(which is in an org code block) is used.
 #+BEGIN_SRC elisp
 (defvar literate-elisp-org-code-blocks-p nil)
 #+END_SRC
 ** stream read functions
-stream read functions such as character ~peek~ or ~next~ are
-required to read from [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Input-Streams.html#Input-Streams][input streams]],
-which is the same input stream used by the original elisp [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Input-Functions.html#Input-Functions][read]] function.
-*** literate-peek
+To give us the ability of syntax analysis, 
+stream read actions such as ~peek a character~ or ~read and drop next character~ are
+required.
+
+The [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Input-Streams.html#Input-Streams][input streams]] are the same streams used by the original elisp [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Input-Functions.html#Input-Functions][read]] function.
 #+BEGIN_SRC elisp
 (defun literate-peek (in)
   "Return the next character without dropping it from the stream.
@@ -110,7 +111,12 @@ Argument IN: input stream."
         ((functionp in)
          (funcall in))))
 #+END_SRC
-*** literate-read-while
+*** literate-read-until-end-of-line
+when read org file character by character, if current line is determined as an org syntax,
+then the whole line should be ignored, so a function to do so should be provied.
+
+Before then, let's implement a abstract method to ~read characters repeatly while a predication is met~. 
+
 #+BEGIN_SRC elisp
 (defun literate-read-while (in pred)
   "Read and return a string from the input stream, as long as the predicate.
@@ -122,9 +128,11 @@ Argument PRED: predicate function."
       (push (literate-next in) chars))
     (apply #'string (nreverse chars))))
 #+END_SRC
-*** literate-skip-to-end-of-line
+
+Now reading until end of line is easy to implement, the ignored string is returned because it
+may be used sometimes,for example when reading options after ~#+begin_src elisp~.
 #+BEGIN_SRC elisp
-(defun literate-skip-to-end-of-line (in)
+(defun literate-read-until-end-of-line (in)
   "Skip over a comment (move to `end-of-line').
 Argument IN: input stream."
   (prog1
@@ -144,7 +152,7 @@ a new org code block option ~tangle~ is defined after ~#+BEGIN_SRC elisp~,and it
   It means that current code block should be read normally, 
   it is the default mode when the option ~tangle~ is not provided.
 - no \\
-  It means that current code block should be ignored by lisp reader.
+  It means that current code block should be ignored by elisp reader.
 #+BEGIN_SRC elisp
 (defun literate-tangle-p (flag)
   "Tangle current elisp code block or not
@@ -165,9 +173,9 @@ Argument OPTIONS: a string to hold the options."
 #+END_SRC
 
 *** basic read routine for org mode syntax.
-Let's define the main read routine to read an org mode stream.
+Let's define the main read routine to read an org file input stream.
 the basic idea is very simple, ignore all lines out of elisp source block,
-and be careful about some special characters.
+and be careful about the special character ~#~.
 #+BEGIN_SRC elisp
 (defun literate-read-datum (in)
   "Read and return a Lisp datum from the input stream.
@@ -176,12 +184,9 @@ Argment IN: input stream."
     (cond
       ((not ch)
        (error "End of file during parsing"))
-      ((eq ch ?\n)
-       (literate-next in)
-       nil)
       ((and (not literate-elisp-org-code-blocks-p)
             (not (eq ch ?\#)))
-       (let ((line (literate-skip-to-end-of-line in)))
+       (let ((line (literate-read-until-end-of-line in)))
          (when literate-elisp-debug-p
            (message "ignore line %s" line)))
        nil)
@@ -190,40 +195,60 @@ Argment IN: input stream."
       (t (read in)))))
 #+END_SRC
 *** how to handle when meet ~#~
+**** The basic logic
+   1. then it is inside an org syntax, check if it is ~#+begin_src elisp~
+      1. if it is not, continue to use org syntax and ignore this line
+      2. if it is, read source block options for this code block
+         1. if it should be tangled, switch to elisp syntax context
+         2. if it should not be tangled, continue to use org syntax and ignore this line
+   2. if it is inside an elisp syntax, then check if it is ~#+~
+      1. if it is, then switch to org mode syntax.
+      2. if it is not, then use origial elip reader to read the following stream\\
+         it should be some legal elisp expressions such like ~#'(lambda ())~.
+
+**** The implementation
 #+BEGIN_SRC elisp
 (defvar literate-elisp-begin-src-id "#+BEGIN_SRC elisp")
 (defun literate-read-after-sharpsign (in)
   "Read after #.
 Argument IN: input stream."
   (literate-next in)
+        ;; 1. if it is not inside an elisp syntax
   (cond ((not literate-elisp-org-code-blocks-p)
+         ;; 1.1 check if it is `#+begin_src elisp'
          (if (loop for i from 1 below (length literate-elisp-begin-src-id)
                    for c1 = (aref literate-elisp-begin-src-id i)
                    for c2 = (literate-next in)
                    thereis (not (char-equal c1 c2)))
-           (progn (literate-skip-to-end-of-line in)
+         ;; 1.2. if it is not, continue to use org syntax and ignore this line
+           (progn (literate-read-until-end-of-line in)
                   nil)
-           (let ((org-options (literate-read-org-options (literate-skip-to-end-of-line in))))
+         ;; 1.3 if it is, read source block options for this code block
+           (let ((org-options (literate-read-org-options (literate-read-until-end-of-line in))))
              (when literate-elisp-debug-p
                (message "found org elisp src block, options:%s" org-options))
              (cond ((literate-tangle-p (getf org-options :tangle))
+         ;; 1.4 if it should be tangled, switch to elisp syntax context
                     (when literate-elisp-debug-p
                       (message "enter into a elisp code block"))
                     (setf literate-elisp-org-code-blocks-p t)
                     nil)))))
-        (literate-elisp-org-code-blocks-p
+         ;; 1.5 if it should not be tangled, continue to use org syntax and ignore this line
+        (t
+        ;; 2. if it is inside an elisp syntax
          (let ((c (literate-next in)))
            (when literate-elisp-debug-p
              (message "found #%c inside a org block" c))
            (case c
+             ;; 2.1 check if it is ~#+~, which has only legal meaning when it is equal `#+end_src'
              (?\+ 
-              (let ((line (literate-skip-to-end-of-line in)))
+              (let ((line (literate-read-until-end-of-line in)))
                 (when literate-elisp-debug-p
                   (message "found org elisp end block:%s" line)))
+             ;; 2.2. if it is, then switch to org mode syntax. 
               (setf literate-elisp-org-code-blocks-p nil))
-             (t (read in)))))
-        (t
-         (read in))))
+             ;; 2.3 if it is not, then use origial elip reader to read the following stream
+             (t (read in)))))))
 #+END_SRC
 
 ** load org file with new syntax
@@ -245,7 +270,7 @@ Argument PATH: target file to load."
     (load path)))
 #+END_SRC
 
-*** provide a command to load literate org file directlly from emacs
+*** provide a command to load literate org file directly from emacs
 #+BEGIN_SRC elisp
 (defun literate-load-file (file)
   "Load the Lisp file named FILE.
@@ -284,7 +309,11 @@ Argument FILE: target file"
        (with-output-to-string 
            (with-current-buffer source-buffer
              (goto-char (point-min))
-             (loop for obj = (literate-read-datum source-buffer)
+             (loop for obj = (progn
+                               ;; ignore whitespace or newline because reader can't handle them.
+                               (while (find (char-after) '(?\n ?\ ?\t))
+                                 (forward-char 1))
+                               (literate-read-datum source-buffer))
                    if obj
                      do (pp obj)
                         (princ "\n")
@@ -298,7 +327,8 @@ Argument FILE: target file"
 So when a new version of [[./literate-elisp.el]] can be released from this file, 
 the following code should be executed.
 #+BEGIN_SRC elisp :tangle no
-(literate-tangle "literate-elisp.org" :header ";;; literate-elisp.el --- literate program to write elisp codes in org mode
+(literate-tangle "literate-elisp.org"
+                 :header ";;; literate-elisp.el --- literate program to write elisp codes in org mode
 
 ;; Copyright (C) 2018-2019 Jingtao Xu
 

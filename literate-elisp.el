@@ -87,7 +87,7 @@
     (apply #'string
            (nreverse chars))))
 
-(defun literate-skip-to-end-of-line
+(defun literate-read-until-end-of-line
        (in)
   "Skip over a comment (move to `end-of-line').\nArgument IN: input stream."
   (prog1
@@ -122,16 +122,13 @@
     (cond
       ((not ch)
        (error "End of file during parsing"))
-      ((eq ch 10)
-       (literate-next in)
-       nil)
       ((and
          (not literate-elisp-org-code-blocks-p)
          (not
           (eq ch 35)))
        (let
            ((line
-             (literate-skip-to-end-of-line in)))
+             (literate-read-until-end-of-line in)))
          (when literate-elisp-debug-p
            (message "ignore line %s" line)))
        nil)
@@ -159,12 +156,12 @@
                (not
                  (char-equal c1 c2)))
        (progn
-         (literate-skip-to-end-of-line in)
+         (literate-read-until-end-of-line in)
          nil)
        (let
            ((org-options
              (literate-read-org-options
-              (literate-skip-to-end-of-line in))))
+              (literate-read-until-end-of-line in))))
          (when literate-elisp-debug-p
            (message "found org elisp src block, options:%s" org-options))
          (cond
@@ -174,7 +171,7 @@
               (message "enter into a elisp code block"))
             (setf literate-elisp-org-code-blocks-p t)
             nil)))))
-    (literate-elisp-org-code-blocks-p
+    (t
      (let
          ((c
            (literate-next in)))
@@ -184,14 +181,12 @@
          (43
           (let
               ((line
-                (literate-skip-to-end-of-line in)))
+                (literate-read-until-end-of-line in)))
             (when literate-elisp-debug-p
               (message "found org elisp end block:%s" line)))
           (setf literate-elisp-org-code-blocks-p nil))
          (t
-          (read in)))))
-    (t
-     (read in))))
+          (read in)))))))
 
 (defun literate-read
        (&optional in)
@@ -257,7 +252,13 @@
              (goto-char
               (point-min))
              (loop for obj =
-                           (literate-read-datum source-buffer)
+                           (progn
+                             (while
+                                 (find
+                                  (char-after)
+                                  '(10 32 9))
+                               (forward-char 1))
+                             (literate-read-datum source-buffer))
                    if obj do
                      (pp obj)
                      (princ "\n")
