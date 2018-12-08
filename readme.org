@@ -14,9 +14,11 @@
   - [[#install-literate-elispel][install literate-elisp.el]]
 - [[#load-this-org-file][load this org file]]
 - [[#demo-routines][demo routines]]
+  -  [[#a-demo-macro-aif][a demo macro ~aif~]]
 - [[#a-demo-emacs-configuration][a demo emacs configuration]]
   - [[#a-demo-configuration][a demo configuration]]
   - [[#load-this-org-file-in-emacs][load this org file in .emacs]]
+- [[#test-cases][Test cases]]
 
 * Introduction
 
@@ -54,20 +56,20 @@ can be loaded directlly if such code block is designed to be loaded directlly.
 (literate-load "readme.org")
 #+END_SRC
 * demo routines
-- a demo macro ~aif~ \\
-  As a demo org file, we write a simple demo macro ~aif~ here.
-  #+BEGIN_SRC elisp
+**  a demo macro ~aif~ 
+As a demo org file, we write a simple demo macro ~aif~ here.
+#+BEGIN_SRC elisp
 (defmacro aif (test then &optional else)
     "Just like IF-BIND but the var is always IT."
     `(if-bind it ,test ,then ,else))
-  #+END_SRC
+#+END_SRC
 
-  You can use it like this
-  #+BEGIN_SRC elisp :tangle no
+You can use it like this
+#+BEGIN_SRC elisp :tangle no
 (aif (and (y-or-n-p "Try it")
             10)
     (message "it is %s" it))
-  #+END_SRC
+#+END_SRC
   after loading this org file by function ~literate-load~, you can use macro ~aif~ directlly in your other elisp files.
 
 * a demo emacs configuration 
@@ -75,13 +77,22 @@ can be loaded directlly if such code block is designed to be loaded directlly.
   For examle, I can write elisp configurations directly in this file:
   
 ** a demo configuration
-  - enable org mode for org files
-    #+BEGIN_SRC elisp
-  (add-to-list 'auto-mode-alist '("\\.\\(org\\|org_archive\\)$" . org-mode))  
-    #+END_SRC
+***  enable org mode for org files
+#+BEGIN_SRC elisp
+(add-to-list 'auto-mode-alist '("\\.\\(org\\|org_archive\\)$" . org-mode))  
+#+END_SRC
 ** load this org file in .emacs
 Then to load routines and configurations in this org file, I add the following codes in my ~.emacs~
 #+BEGIN_SRC elisp :tangle no
 (load "~/projects/literate-elisp/literate-elisp.el")
 (literate-load "~/projects/literate-elisp/readme.org")
+#+END_SRC
+* Test cases
+a simple function is defined as the entry point for the tests:
+#+BEGIN_SRC elisp
+(defun litereate-elisp-demo-test ()
+  (and (= 10 (aif 10 it 9)))
+  (string= "\\.\\(org\\|org_archive\\)$" (loop for (x . y) in auto-mode-alist
+                                               if (eq y 'org-mode)
+                                                 return x)))
 #+END_SRC

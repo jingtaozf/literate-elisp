@@ -21,5 +21,5 @@ script:
   - $EMACS -Q --batch -L . \
     --eval "(load \"literate-elisp.el\")" \
     --eval "(literate-load \"readme.org\")" \
-    --eval "(kill-emacs 0)"
+    --eval "(kill-emacs (if (and (fboundp 'litereate-elisp-demo-test) (funcall 'litereate-elisp-demo-test)) 0 1))"
 
