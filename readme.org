@@ -96,3 +96,5 @@ a simple function is defined as the entry point for the tests:
                                                if (eq y 'org-mode)
                                                  return x)))
 #+END_SRC
+Web service [[https://travis-ci.com/jingtaozf/literate-lisp][travis ci]] will load config file [[./.travis.yml]] to run these tests automatically 
+every time there is a new git change.
