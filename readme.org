@@ -43,7 +43,7 @@ This library contains the following files:
 - [[./literate-elisp.el]] \\
   The tangled codes of literate elisp reader, generated from ~literate-elisp.org~
 - [[./literate-elisp.pdf]] \\
-  The weaved documentation, generated from ~literate-elisp.org~ by org mode's pulish feature.
+  The weaved documentation, generated from ~literate-elisp.org~ by org mode's publish feature.
 - [[./readme.org]] \\
   This file contains introduction and demo codes for how to do literate elisp in an org file.
 - [[./.travis.yml]] \\
