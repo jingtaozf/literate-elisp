@@ -112,7 +112,7 @@ a simple function is defined as the entry point for the tests:
 Web service [[https://travis-ci.com/jingtaozf/literate-lisp][travis ci]] will load config file [[./.travis.yml]] to run these tests automatically 
 every time there is a new git change.
 * Copyright and license
-Code and documentation copyright 2011-2018 Jingtao Xu.
+Code and documentation copyright 2018-2019 Jingtao Xu.
 
 This program is free software: you can redistribute it and/or modify it 
 under the terms of the GNU General Public License as published by the Free Software Foundation,
