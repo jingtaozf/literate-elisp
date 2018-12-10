@@ -38,15 +38,15 @@ And if you have defined elisp variables and functions in this org file, you can 
 their defintiions directlly by elisp's source code navigation feature.
 
 This library contains the following files:
-- literate-elisp.org \\ 
+- [[./literate-elisp.org]] \\ 
   The implementation and documentation of literate elisp reader.
-- literate-elisp.el \\
+- [[./literate-elisp.el]] \\
   The tangled codes of literate elisp reader, generated from ~literate-elisp.org~
-- literate-elisp.pdf \\
+- [[./literate-elisp.pdf]] \\
   The weaved documentation, generated from ~literate-elisp.org~ by org mode's pulish feature.
-- readme.org \\
+- [[./readme.org]] \\
   This file contains introduction and demo codes for how to do literate elisp in an org file.
-- .travis.yml \\
+- [[./.travis.yml]] \\
   The config file used by Web service [[https://travis-ci.com/jingtaozf/literate-lisp][travis ci]] to test this library.
 
 * Preparation
