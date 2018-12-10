@@ -37,6 +37,18 @@ surrounded by ~#+begin_src lisp~ and ~#+end_src~ in an org file directlly.
 And if you have defined elisp variables and functions in this org file, you can jump to the position of 
 their defintiions directlly by elisp's source code navigation feature.
 
+This library contains the following files:
+- literate-elisp.org \\ 
+  The implementation and documentation of literate elisp reader.
+- literate-elisp.el \\
+  The tangled codes of literate elisp reader, generated from ~literate-elisp.org~
+- literate-elisp.pdf \\
+  The weaved documentation, generated from ~literate-elisp.org~ by org mode's pulish feature.
+- readme.org \\
+  This file contains introduction and demo codes for how to do literate elisp in an org file.
+- .travis.yml \\
+  The config file used by Web service [[https://travis-ci.com/jingtaozf/literate-lisp][travis ci]] to test this library.
+
 * Preparation
 ** install polymode in emacs
 The org file should be opened with [[https://polymode.github.io/][polymode]],the following elisp scripts should be added in .emacs
