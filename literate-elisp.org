@@ -18,13 +18,13 @@
 
 * Introduction
 
-An emacs library or configuation file can be written in org mode then is tangled to an elisp file later,
+An emacs library or configuration file can be written in org mode then is tangled to an elisp file later,
 here is one example: [[https://github.com/larstvei/dot-emacs][Emacs configurations written in Org mode]] .
 
 But What if I want to write a library or a configuration file in org file and  load it to emacs directly?
 If it can be done, then we will have an uniform development environment without keeping multiple copies
-of codes. Furturemore, we can jump to the elisp definition in an org file directly when required.
-That will be a convinient way for our daily development.
+of codes. Furthermore, we can jump to the elisp definition in an org file directly when required.
+That will be a convenient way for our daily development.
 * How to do it?
 In org mode, the comment line start with character ~#~ (see [[https://orgmode.org/manual/Comment-lines.html][org manual]] ), 
 and the emacs lisp codes are surrounded by lines between ~#+begin_src elisp~ and ~#+end_src~ 
@@ -39,7 +39,7 @@ and the emacs lisp codes are surrounded by lines between ~#+begin_src elisp~ and
 So to let emacs lisp can read an org file directly, all lines out of surrounding
 by ~#+begin_src elisp~ and ~#+end_src~ should be ignored, 
 and even codes surrounding by them should be ignored 
-if the options in a code block request such behaviour.
+if the options in a code block request such behavior.
 
 Here is a trick, a new emacs lisp reader function is specified
 (by binding elisp variable [[https://www.gnu.org/software/emacs/manual/html_node/elisp/How-Programs-Do-Loading.html][load-read-function]]) to replace original ~read~ function when
@@ -51,8 +51,8 @@ which means it will ignore all lines until it meet ~#+BEGIN_SRC lisp~.
 When ~#+begign_src elisp~ is met, all org options for this code block will be read and it give us
 a chance to switch back to normal emacs lisp reader or not.
 
-And if it switch back to normal emacs lisp reader, the end line ~#+END_SRC~ should be catched,
-if it is catchd, then the reader will switch back to org mode syntax.
+And if it switch back to normal emacs lisp reader, the end line ~#+END_SRC~ should be caught,
+if it is caught, then the reader will switch back to org mode syntax.
 if it is not, then the reader will continue to read subsequent stream 
 as like the original emacs lisp reader.
 
@@ -63,7 +63,7 @@ a debug variable is used to switch on/off the log messages for this library
 (defvar literate-elisp-debug-p nil)
 #+END_SRC
 
-a dynamic boolean variable to be bound by our read function while parsing is in progress.
+a dynamic Boolean variable to be bound by our read function while parsing is in progress.
 It'll indicate whether org mode syntax is used or elisp mode syntax(which is in an org code block) is used.
 #+BEGIN_SRC elisp
 (defvar literate-elisp-org-code-blocks-p nil)
@@ -115,7 +115,7 @@ Argument IN: input stream."
 #+END_SRC
 *** literate-read-until-end-of-line
 when read org file character by character, if current line is determined as an org syntax,
-then the whole line should be ignored, so a function to do so should be provied.
+then the whole line should be ignored, so a function to do so should be provided.
 
 Before then, let's implement a abstract method to ~read characters repeatly while a predication is met~. 
 
@@ -207,7 +207,7 @@ Argment IN: input stream."
       1. if it is, then switch to org mode syntax.\\
          because this is the only legal meaning when it is equal to `#+end_src',
          so the test here is a little simple.
-      2. if it is not, then use original elip reader to read the following stream\\
+      2. if it is not, then use original elisp reader to read the following stream\\
          it should be some legal elisp expressions such like ~#'(lambda ())~.
 **** The implementation
 #+BEGIN_SRC elisp
@@ -283,7 +283,8 @@ Argument FILE: target file path."
   (literate-load (expand-file-name file)))
 #+END_SRC
 
-*** a function to byte compile a literate org file (TODO)
+*** a function to byte compile a literate org file
+(todo)
 #+BEGIN_SRC elisp
 (defun literate-byte-compile-file (file)
   "Byte compile an org file.
@@ -347,4 +348,4 @@ the following code should be executed.
 ;;; literate-elisp.el ends here
 ")
 #+END_SRC
-The head and tail lines are required by [[https://github.com/melpa/melpa/blob/master/CONTRIBUTING.org][MELPA]] respository. 
+The head and tail lines are required by [[https://github.com/melpa/melpa/blob/master/CONTRIBUTING.org][MELPA]] repository. 
