@@ -1,12 +1,13 @@
-;;; literate-elisp.el --- literate program to write elisp codes in org mode
+;;; literate-elisp.el --- literate program to write elisp codes in org mode  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2018-2019 Jingtao Xu
 
 ;; Author: Jingtao Xu <jingtaozf@gmail.com>
 ;; Created: 6 Dec 2018
 ;; Version: 0.1
-;; Keywords: elisp literate org
+;; Keywords: lisp docs extensions tools
 ;; URL: https://github.com/jingtaozf/literate-elisp
+;; Package-Requires: ((emacs "24"))
 
 ;;; Commentary:
 
