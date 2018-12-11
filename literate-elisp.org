@@ -15,6 +15,7 @@
   - [[#handle-org-mode-syntax][handle org mode syntax]]
   - [[#load-org-file-with-new-syntax][load org file with new syntax]]
   - [[#function-to-tangle-org-file-to-elisp-file][function to tangle org file to elisp file]]
+- [[#references][References]]
 
 * Introduction
 
@@ -347,3 +348,9 @@ the following code should execute.
 ")
 #+END_SRC
 The head and tail lines require by [[https://github.com/melpa/melpa/blob/master/CONTRIBUTING.org][MELPA]] repository. 
+* References
+- [[http://www.literateprogramming.com/knuthweb.pdf][Literate. Programming.]] by [[https://www-cs-faculty.stanford.edu/~knuth/lp.html][Donald E. Knuth]]
+- [[http://www.literateprogramming.com/][Literate Programming]]  a site of literate programming
+- [[https://www.youtube.com/watch?v=Av0PQDVTP4A][Literate Programming in the Large]] a talk video from Timothy Daly,one of the original authors of [[https://en.wikipedia.org/wiki/Axiom_(computer_algebra_system)][Axiom]].
+- [[https://orgmode.org/worg/org-contrib/babel/intro.html#literate-programming][literate programming in org babel]]
+- [[https://github.com/limist/literate-programming-examples][A collection of literate programming examples using Emacs Org mode]]
