@@ -63,8 +63,8 @@ The org file should be opened with [[https://polymode.github.io/][polymode]],the
 #+END_SRC
 * load this org file 
 
-This org file can be loaded by elisp function ~literate-load~ directly and all elisp code blocks in this org file
-can be loaded directly if such code block is designed to be loaded directly.
+This org file can load by elisp function ~literate-load~ directly and all elisp code blocks in this org file
+can load directly if such code block can load directly according to its code block options.
 #+BEGIN_SRC elisp :tangle no
 (literate-load "readme.org")
 #+END_SRC
@@ -83,11 +83,12 @@ You can use it like this
             10)
     (message "it is %s" it))
 #+END_SRC
-  after loading this org file by function ~literate-load~, you can use macro ~aif~ directly in your other elisp files.
+After loading this org file by function ~literate-load~,
+ you can use macro ~aif~ directly in your other elisp files.
 
 * a demo emacs configuration 
-  Of course the one purpose of this library is to write emacs configuration directly in an org file. \\
-  For example, I can write elisp configurations directly in this file:
+Of course the one purpose of this library is to write emacs configuration directly in an org file. \\
+For example, I can write elisp configurations directly in this file:
   
 ** a demo configuration
 ***  enable org mode for org files
