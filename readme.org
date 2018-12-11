@@ -25,18 +25,32 @@
 
 This is a demo file to show a way how to use [[http://www.literateprogramming.com/][literal programming]] in Emacs lisp.
 
-The implementation details of [[https://github.com/jingtaozf/literate-elisp][literate-elisp]] can be found in file [[./literate-elisp.org]] ([[./literate-elisp.pdf][pdf version]]).
+The implementation details of [[https://github.com/jingtaozf/literate-elisp][literate-elisp]] is in file [[./literate-elisp.org]] ([[./literate-elisp.pdf][pdf version]]).
 
 It export an elisp function ~literate-load~ and this function can load elisp codes in all elisp code blocks 
 surrounded by ~#+begin_src lisp~ and ~#+end_src~ in an org file directly.
+
+For example, if you have an org file and it contains such elisp code block:
 #+BEGIN_EXAMPLE
    ,#+BEGIN_SRC elisp :tangle yes
-   (message "this is a test.~%")
+   (defun test ()
+    (message "this is a test from org file.~%"))
    ,#+END_SRC
 #+END_EXAMPLE
 
-And if you have defined elisp variables and functions in this org file, you can jump to the position of 
-their definitions directly by emacs lisp's source code navigation feature.
+Then you can load this org file like this:
+#+BEGIN_SRC elisp
+(load "~/projects/literate-elisp/literate-elisp.el")
+(literate-load "test.org")
+#+END_SRC
+Now the elisp function ~test~ is ready to use, 
+and you can jump to the definition of ~test~ in the org file by using emacs library [[https://github.com/emacs-mirror/emacs/blob/master/lisp/emacs-lisp/find-func.el][find-func]] directly
+without tangling them to an elisp file(.el).
+
+You can also open an org file by [[https://polymode.github.io/][polymode]] when edit,which will switch elisp code block to emacs elisp mode.
+
+So you will have a perfect literate environment, write elisp codes in an org file, 
+without losing emacs lisp's source code editing and navigation feature.
 
 This library contains the following files:
 - [[./literate-elisp.org]] \\ 
@@ -52,7 +66,7 @@ This library contains the following files:
 
 * Preparation
 ** install Polymode in Emacs
-The org file should be opened with [[https://polymode.github.io/][polymode]],the following emacs lisp scripts should be added in .emacs
+The org file can open as [[https://polymode.github.io/][polymode]],the following emacs lisp scripts should add in .emacs
 #+BEGIN_SRC elisp :tangle no
 (use-package poly-org
     :ensure t)
@@ -64,7 +78,7 @@ The org file should be opened with [[https://polymode.github.io/][polymode]],the
 * load this org file 
 
 This org file can load by elisp function ~literate-load~ directly and all elisp code blocks in this org file
-can load directly if such code block can load directly according to its code block options.
+can load directly if such code block should load directly according to its code block options.
 #+BEGIN_SRC elisp :tangle no
 (literate-load "readme.org")
 #+END_SRC
@@ -84,7 +98,7 @@ You can use it like this
     (message "it is %s" it))
 #+END_SRC
 After loading this org file by function ~literate-load~,
- you can use macro ~aif~ directly in your other elisp files.
+you can use macro ~aif~ directly in your other elisp files.
 
 * a demo emacs configuration 
 Of course the one purpose of this library is to write emacs configuration directly in an org file. \\
@@ -102,7 +116,7 @@ Then to load routines and configurations in this org file, I add the following c
 (literate-load "~/projects/literate-elisp/readme.org")
 #+END_SRC
 * Test cases
-a simple function is defined as the entry point for the tests:
+Let's define a simple function as the entry point for the tests:
 #+BEGIN_SRC elisp
 (defun litereate-elisp-demo-test ()
   (and (= 10 (aif 10 it 9)))
