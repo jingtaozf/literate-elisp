@@ -119,10 +119,10 @@ Then to load routines and configurations in this org file, I add the following c
 Let's define a simple function as the entry point for the tests:
 #+BEGIN_SRC elisp
 (defun litereate-elisp-demo-test ()
-  (and (= 10 (aif 10 it 9)))
-  (string= "\\.\\(org\\|org_archive\\)$" (loop for (x . y) in auto-mode-alist
-                                               if (eq y 'org-mode)
-                                                 return x)))
+  (and (= 10 (aif 10 it 9))
+       (string= "\\.\\(org\\|org_archive\\)$" (loop for (x . y) in auto-mode-alist
+                                                    if (eq y 'org-mode)
+                                                      return x))))
 #+END_SRC
 Web service [[https://travis-ci.com/jingtaozf/literate-lisp][travis ci]] will load config file [[./.travis.yml]] to run these tests automatically 
 every time there is a new git change.
