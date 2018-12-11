@@ -51,7 +51,7 @@ You can also open an org file by [[https://polymode.github.io/][polymode]] when 
 
 So you will have a perfect literate environment which can write elisp codes in an org file, and
 load it directly without tangling an org file to an elisp file.
-Emacs lisp's source code editing and navigation feature work well to this org file too.
+Emacs lisp's source code editing and navigation feature work well to this org file.
 
 This library contains the following files:
 - [[./literate-elisp.org]] \\ 
