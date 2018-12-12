@@ -47,13 +47,13 @@ Here is a trick, a new emacs lisp reader function get implemented
 using elisp function ~load~ to load a org file.
 
 The new reader will make elisp reader enter into org mode syntax, 
-which means it will ignore all lines until it meet ~#+BEGIN_SRC lisp~.
+which means it will ignore all lines until it meet ~#+BEGIN_SRC elisp~.
 
 When ~#+begign_src elisp~ occur, org options for this code block will give us
 a chance to switch back to normal emacs lisp reader or not.
 
 And if it switch back to normal emacs lisp reader, the end line ~#+END_SRC~ should mean the
-end of current code block, so it occur, then the reader will switch back to org mode syntax.
+end of current code block, so if it occur, then the reader will switch back to org mode syntax.
 if not, then the reader will continue to read subsequent stream 
 as like the original emacs lisp reader.
 
@@ -64,8 +64,8 @@ There is a debug variable to switch on/off the log messages for this library.
 (defvar literate-elisp-debug-p nil)
 #+END_SRC
 
-a dynamic Boolean variable bound by our read function while parsing is in progress.
-It'll indicate whether org mode syntax or elisp mode syntax is in use (which is in an org code block).
+There is also a dynamic Boolean variable bounded by our read function while parsing is in progress.
+It'll indicate whether org mode syntax or elisp mode syntax is in use.
 #+BEGIN_SRC elisp
 (defvar literate-elisp-org-code-blocks-p nil)
 #+END_SRC
@@ -135,7 +135,7 @@ Now reading until end of line is easy to implement, the ignored string return fr
 because it may be useful sometimes,for example when reading options after ~#+begin_src elisp~.
 #+BEGIN_SRC elisp
 (defun literate-read-until-end-of-line (in)
-  "Skip over a comment (move to `end-of-line').
+  "Skip over a line (move to `end-of-line').
 Argument IN: input stream."
   (prog1
     (literate-read-while in (lambda (ch)
@@ -145,7 +145,7 @@ Argument IN: input stream."
 ** handle org mode syntax
 *** source code block option ~tangle~
 There are a lot of different elisp codes occur in one org file, some for function implementation,
-some for demo, and some for test, so an org code block option ~tangle~ to decide to
+some for demo, and some for test, so an [[https://orgmode.org/manual/Structure-of-code-blocks.html][org code block]] option ~tangle~ to decide to
 read them or not should define,and it has three meanings:
 - yes \\
   It means that current code block should load normally, 
