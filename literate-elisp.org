@@ -371,3 +371,4 @@ The head and tail lines require by [[https://github.com/melpa/melpa/blob/master/
 - [[https://www.youtube.com/watch?v=Av0PQDVTP4A][Literate Programming in the Large]] a talk video from Timothy Daly,one of the original authors of [[https://en.wikipedia.org/wiki/Axiom_(computer_algebra_system)][Axiom]].
 - [[https://orgmode.org/worg/org-contrib/babel/intro.html#literate-programming][literate programming in org babel]]
 - [[https://github.com/limist/literate-programming-examples][A collection of literate programming examples using Emacs Org mode]]
+- [[https://github.com/mishoo/elisp-reader.el][elisp-reader.el]] Customizable reader for Emacs Lisp
