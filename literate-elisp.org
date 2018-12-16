@@ -113,6 +113,22 @@ Argument IN: input stream."
         ((functionp in)
          (funcall in))))
 #+END_SRC
+*** literate-position
+This functions is a helpful function to debug our library.
+#+BEGIN_SRC elisp
+(defun literate-position (in)
+  "Return the current position from the stream.
+Argument IN: input stream."
+  (cond ((bufferp in)
+         (with-current-buffer in
+           (point)))
+        ((markerp in)
+         (with-current-buffer (marker-buffer in)
+           (marker-position in)))
+        ((functionp in)
+         "Unknown")))
+#+END_SRC
+
 *** literate-read-until-end-of-line
 when read org file character by character, if current line determines as an org syntax,
 then the whole line should ignore, so there should exist such a function.
@@ -173,25 +189,48 @@ Argument OPTIONS: a string to hold the options."
 
 *** basic read routine for org mode syntax.
 Let's define the main read routine to read an org file input stream.
-the basic idea is simple, ignore all lines out of elisp source block,
+the basic idea is simple, ignoring all lines out of elisp source block,
 and be careful about the special character ~#~.
+
+emacs original ~read~ function will try to skip all comments until it can get a valid elisp form,
+so when we call original ~read~ function and there are no valid elisp form left in one code block,
+it may reach ~#+end_src~,
+as it don't know how to read it, it will signal an error description ~(invalid-read-syntax "#")~.
+So when such error occur, we have to handle it with our literate reader.
+
+Please note that the stream position is just after the character ~#~ when above error occur.
+
 #+BEGIN_SRC elisp
 (defun literate-read-datum (in)
   "Read and return a Lisp datum from the input stream.
 Argment IN: input stream."
   (let ((ch (literate-peek in)))
-    (cond
-      ((not ch)
-       (error "End of file during parsing"))
-      ((and (not literate-elisp-org-code-blocks-p)
-            (not (eq ch ?\#)))
-       (let ((line (literate-read-until-end-of-line in)))
-         (when literate-elisp-debug-p
-           (message "ignore line %s" line)))
-       nil)
-      ((eq ch ?\#)
-       (literate-read-after-sharpsign in))
-      (t (read in)))))
+    (when literate-elisp-debug-p
+      (message "literate-read-datum to character '%c'(position:%s)."
+               ch (literate-position in)))
+    (condition-case ex
+         (cond
+           ((not ch)
+            (error "End of file during parsing"))
+           ((and (not literate-elisp-org-code-blocks-p)
+                 (not (eq ch ?\#)))
+            (let ((line (literate-read-until-end-of-line in)))
+              (when literate-elisp-debug-p
+                (message "ignore line %s" line)))
+            nil)
+           ((eq ch ?\#)
+            (literate-next in)
+            (literate-read-after-sharpsign in))
+           (t (read in)))
+       (invalid-read-syntax
+        (when literate-elisp-debug-p
+          (message "reach invalid read syntax %s at position %s"
+                   ex (literate-position in)))
+        (if (equal "#" (second ex))
+          ;; maybe this is #+end_src
+          (literate-read-after-sharpsign in)
+          ;; re-throw this signal because we don't know how to handle it.
+          (signal (car ex) (cdr err)))))))
 #+END_SRC
 *** how to handle when meet ~#~
 **** The basic logic
@@ -212,7 +251,6 @@ Argment IN: input stream."
 (defun literate-read-after-sharpsign (in)
   "Read after #.
 Argument IN: input stream."
-  (literate-next in)
         ;; 1. if it is not inside an elisp syntax
   (cond ((not literate-elisp-org-code-blocks-p)
          ;; 1.1 check if it is `#+begin_src elisp'
@@ -246,13 +284,32 @@ Argument IN: input stream."
                 (when literate-elisp-debug-p
                   (message "found org elisp end block:%s" line)))
              ;; 2.2. if it is, then switch to org mode syntax. 
-              (setf literate-elisp-org-code-blocks-p nil))
+              (setf literate-elisp-org-code-blocks-p nil)
+              nil)
              ;; 2.3 if it is not, then use original elip reader to read the following stream
              (t (read in)))))))
 #+END_SRC
 
 ** load/compile org file with new syntax
 *** literate reader is in use when loading a org file
+
+original function ~read~ will read until it can get a valid lisp form,
+we will try to keep this behavior.
+#+BEGIN_SRC elisp
+(defun literate-read-internal (&optional in)
+  "A wrapper to follow the behavior of original read function.
+Argument IN: input stream."
+  (loop for form = (literate-read-datum in)
+        if form
+          do (return form)
+             ;; if original read function return nil, just return it.
+        if literate-elisp-org-code-blocks-p
+          do (return nil)
+             ;; if it reach end of stream.
+        if (null (literate-peek in))
+          do (return nil)))
+#+END_SRC
+
 label:literate-read
 #+BEGIN_SRC elisp
 (defun literate-read (&optional in)
@@ -260,7 +317,7 @@ label:literate-read
 Argument IN: input stream."
   (if (and load-file-name
            (string-match "\\.org\\'" load-file-name))
-    (literate-read-datum in)
+    (literate-read-internal in)
     (read in)))
 
 (defun literate-load (path)
@@ -282,11 +339,17 @@ Argument FILE: target file path."
 #+END_SRC
 
 *** a function to byte compile a literate org file
-This feature is not in work yet.
+
+*This feature is under development and not work yet*
+
+Currently(2018.12.16) Emacs [[https://github.com/emacs-mirror/emacs/blob/master/lisp/emacs-lisp/bytecomp.el][bytecomp]] library always use function ~read~ to read elisp forms,
+instead of the function specified by variable ~load-read-function~.so we modify the symbol function
+of read when byte compiling org file.
 #+BEGIN_SRC elisp
 (defun literate-byte-compile-file (file &optional load)
   "Byte compile an org file.
-Argument FILE: file to compile."
+Argument FILE: file to compile.
+Arguemnt LOAD: load the file after compiling."
   (interactive
    (let ((file buffer-file-name)
 	 (file-dir nil))
@@ -298,21 +361,23 @@ Argument FILE: file to compile."
 			     "Byte compile file: ")
 			   file-dir buffer-file-name nil)
 	   current-prefix-arg)))
-  (let ((literate-elisp-literate-compile-p t)
-        (literate-elisp-org-code-blocks-p nil))
-    (byte-compile-file file load)))
+  (let ((literate-elisp-org-code-blocks-p nil)
+        (load-file-name buffer-file-name)
+        (original-read (symbol-function 'read)))
+    (fset 'read (symbol-function 'literate-read-internal))
+    (unwind-protect
+        (byte-compile-file file load)
+      (fset 'read original-read))))
 #+END_SRC
 
 ** function to tangle org file to elisp file
 So one can build an emacs lisp file from an org file without depending on ~literate-elisp~ library.
 #+BEGIN_SRC elisp
-(cl-defun literate-tangle (file &key (el-file (concat (file-name-sans-extension file) ".el")) header tail
-                                compile-p load-p)
+(cl-defun literate-tangle (file &key (el-file (concat (file-name-sans-extension file) ".el")) header tail)
   "Literate tangle
 Argument FILE: target file"
   (let* ((source-buffer (find-file-noselect file))
          (target-buffer (find-file-noselect el-file))
-         (load-read-function (symbol-function 'literate-read))
          (org-path-name (concat (pathname-name file) "." (pathname-type file)))
          (literate-elisp-org-code-blocks-p nil))
     (with-current-buffer target-buffer
@@ -320,18 +385,14 @@ Argument FILE: target file"
       (when header
         (insert header "\n"))
       (insert ";; This file is automatically generated by function `literate-tangle' from file `" org-path-name "'.\n"
-              ";; It is not readable by a human and is generated to load by emacs directly without library `literate-elisp'.\n"
+              ";; It is not readable by a human and is generated to load by Emacs directly without library `literate-elisp'.\n"
               ";; you should read file `" org-path-name "' to find out the usage and implementation detail of this source file.\n\n"
               ";;; Code:\n\n")
       (insert
        (with-output-to-string 
            (with-current-buffer source-buffer
              (goto-char (point-min))
-             (loop for obj = (progn
-                               ;; ignore whitespace or newline because reader can't handle them.
-                               (while (find (char-after) '(?\n ?\ ?\t))
-                                 (forward-char 1))
-                               (literate-read-datum source-buffer))
+             (loop for obj = (literate-read-internal source-buffer)
                    if obj
                      do (pp obj)
                         (princ "\n")
@@ -371,4 +432,4 @@ The head and tail lines require by [[https://github.com/melpa/melpa/blob/master/
 - [[https://www.youtube.com/watch?v=Av0PQDVTP4A][Literate Programming in the Large]] a talk video from Timothy Daly,one of the original authors of [[https://en.wikipedia.org/wiki/Axiom_(computer_algebra_system)][Axiom]].
 - [[https://orgmode.org/worg/org-contrib/babel/intro.html#literate-programming][literate programming in org babel]]
 - [[https://github.com/limist/literate-programming-examples][A collection of literate programming examples using Emacs Org mode]]
-- [[https://github.com/mishoo/elisp-reader.el][elisp-reader.el]] Customizable reader for Emacs Lisp
+- [[https://github.com/mishoo/elisp-reader.el][elisp-reader.el]] customized reader for Emacs Lisp

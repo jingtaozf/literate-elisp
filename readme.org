@@ -19,6 +19,8 @@
   - [[#a-demo-configuration][a demo configuration]]
   - [[#load-this-org-file-in-emacs][load this org file in .emacs]]
 - [[#test-cases][Test cases]]
+  - [[#test-the-empty-code-block][test the empty code block]]
+  - [[#the-entry-point-of-all-tests][the entry point of all tests]]
 - [[#copyright-and-license][Copyright and license]]
 
 * Introduction
@@ -39,7 +41,7 @@ For example, if you have an org file and it contains such elisp code block:
 #+END_EXAMPLE
 
 Then you can load this org file like this:
-#+BEGIN_SRC elisp
+#+BEGIN_SRC elisp :tangle no
 (load "~/projects/literate-elisp/literate-elisp.el")
 (literate-load "test.org")
 #+END_SRC
@@ -117,6 +119,18 @@ Then to load routines and configurations in this org file, I add the following c
 (literate-load "~/projects/literate-elisp/readme.org")
 #+END_SRC
 * Test cases
+** test the empty code block
+If one code block is empty, we will use emacs original ~read~ function, which will read ~#+end_src~
+and signal an error, let's test whether ~literate-elisp~ can handle it correctly
+#+BEGIN_SRC elisp
+
+#+END_SRC
+
+#+BEGIN_SRC elisp
+;; This is a comment line to test empty code block.
+#+END_SRC
+
+** the entry point of all tests
 Let's define a simple function as the entry point for the tests:
 #+BEGIN_SRC elisp
 (defun litereate-elisp-demo-test ()
