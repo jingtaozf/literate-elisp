@@ -20,6 +20,6 @@ install:
 script:
   - $EMACS -Q --batch -L . \
     --load literate-elisp \
-    --funcall literate-batch-load readme.org \
+    --eval "(literate-load \"readme.org\")" \
     --funcall ert-run-tests-batch-and-exit
 
