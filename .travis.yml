@@ -38,8 +38,8 @@ install:
   #   fi
 
 script:
-  - emacs -Q --batch -L . \
-    --load literate-elisp \
-    --eval "(literate-load \"readme.org\")" \
+  - emacs -Q --batch -L .
+    --load literate-elisp
+    --funcall literate-batch-load readme.org
     --funcall ert-run-tests-batch-and-exit
 
