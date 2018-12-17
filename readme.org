@@ -18,8 +18,7 @@
 - [[#a-demo-emacs-configuration][a demo emacs configuration]]
   - [[#a-demo-configuration][a demo configuration]]
   - [[#load-this-org-file-in-emacs][load this org file in .emacs]]
-- [[#test-cases][Test cases]]
-  - [[#test-the-empty-code-block][test the empty code block]]
+- [[#test][Test]]
   - [[#the-entry-point-of-all-tests][the entry point of all tests]]
 - [[#copyright-and-license][Copyright and license]]
 
@@ -118,18 +117,7 @@ Then to load routines and configurations in this org file, I add the following c
 (load "~/projects/literate-elisp/literate-elisp.el")
 (literate-load "~/projects/literate-elisp/readme.org")
 #+END_SRC
-* Test cases
-** test the empty code block
-If one code block is empty, we will use emacs original ~read~ function, which will read ~#+end_src~
-and signal an error, let's test whether ~literate-elisp~ can handle it correctly
-#+BEGIN_SRC elisp
-
-#+END_SRC
-
-#+BEGIN_SRC elisp
-;; This is a comment line to test empty code block.
-#+END_SRC
-
+* Test
 ** the entry point of all tests
 Let's define a simple function as the entry point for the tests:
 #+BEGIN_SRC elisp
