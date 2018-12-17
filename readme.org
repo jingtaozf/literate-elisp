@@ -160,12 +160,12 @@ every time there is a new git change.
 #+END_SRC
 ** test org mode configuration
 #+BEGIN_SRC elisp
-;; (ert-deftest literate-demo-org-mode ()
-;;   "A spec of macro aif."
-;;   (should (equal (loop for (x . y) in auto-mode-alist
-;;                        if (eq y 'org-mode)
-;;                          return x)
-;;                  "\\.\\(org\\|org_archive\\)$")))
+(ert-deftest literate-demo-org-mode ()
+  "A spec of macro aif."
+  (should (equal (cl-loop for (x . y) in auto-mode-alist
+                          if (eq y 'org-mode)
+                          return x)
+                 "\\.\\(org\\|org_archive\\)$")))
 #+END_SRC
 * Copyright and license
 Code and documentation copyright 2018-2019 Jingtao Xu.
