@@ -17,6 +17,8 @@
 
 ;;; Code:
 
+(require 'cl-lib)
+
 (defvar literate-elisp-debug-p nil)
 
 (defvar literate-elisp-org-code-blocks-p nil)
@@ -118,17 +120,17 @@
 (defun literate-tangle-p
        (flag)
   "Tangle current elisp code block or not\nArgument FLAG: flag symbol."
-  (case flag
+  (cl-case flag
     (no nil)
     (t t)))
 
 (defun literate-read-org-options
        (options)
   "Read org code block options.\nArgument OPTIONS: a string to hold the options."
-  (loop for token in
-                  (split-string options)
-        collect
-        (intern token)))
+  (cl-loop for token in
+           (split-string options)
+           collect
+           (intern token)))
 
 (defun literate-read-datum
        (in)
@@ -178,15 +180,15 @@
   (cond
     ((not literate-elisp-org-code-blocks-p)
      (if
-         (loop for i from 1 below
-                            (length literate-elisp-begin-src-id)
-               for c1 =
-                      (aref literate-elisp-begin-src-id i)
-               for c2 =
-                      (literate-next in)
-               thereis
-               (not
-                 (char-equal c1 c2)))
+         (cl-loop for i from 1 below
+                  (length literate-elisp-begin-src-id)
+                  for c1 =
+                  (aref literate-elisp-begin-src-id i)
+                  for c2 =
+                  (literate-next in)
+                  thereis
+                  (not
+                   (char-equal c1 c2)))
        (progn
          (literate-read-until-end-of-line in)
          nil)
@@ -198,7 +200,7 @@
            (message "found org elisp src block, options:%s" org-options))
          (cond
            ((literate-tangle-p
-             (getf org-options :tangle))
+             (cl-getf org-options :tangle))
             (when literate-elisp-debug-p
               (message "enter into a elisp code block"))
             (setf literate-elisp-org-code-blocks-p t)
@@ -209,7 +211,7 @@
            (literate-next in)))
        (when literate-elisp-debug-p
          (message "found #%c inside a org block" c))
-       (case c
+       (cl-case c
          (43
           (let
               ((line
@@ -224,17 +226,17 @@
 (defun literate-read-internal
        (&optional in)
   "A wrapper to follow the behavior of original read function.\nArgument IN: input stream."
-  (loop for form =
-                 (literate-read-datum in)
-        if form do
-          (return form)
-        if literate-elisp-org-code-blocks-p do
-          (return nil)
-        if
-        (null
-          (literate-peek in))
-        do
-     (return nil)))
+  (cl-loop for form =
+           (literate-read-datum in)
+           if form do
+           (cl-return form)
+           if literate-elisp-org-code-blocks-p do
+           (cl-return nil)
+           if
+           (null
+            (literate-peek in))
+           do
+           (cl-return nil)))
 
 (defun literate-read
        (&optional in)
@@ -254,6 +256,15 @@
        (literate-elisp-org-code-blocks-p nil))
     (load path)))
 
+(defun literate-batch-load nil "Literate load file in `command-line' arguments."
+       (or noninteractive
+           (signal 'user-error
+                   '("This function is only for use in batch mode")))
+       (if command-line-args-left
+         (literate-load
+          (pop command-line-args-left))
+         (error "No argument left for `literate-batch-load'")))
+
 (defun literate-load-file
        (file)
   "Load the Lisp file named FILE.\nArgument FILE: target file path."
@@ -265,7 +276,7 @@
 
 (defun literate-byte-compile-file
        (file &optional load)
-  "Byte compile an org file.\nArgument FILE: file to compile.\nArguemnt LOAD: LOAD the file after compiling"
+  "Byte compile an org file.\nArgument FILE: file to compile.\nArguemnt LOAD: load the file after compiling."
   (interactive
    (let
        ((file buffer-file-name)
@@ -321,17 +332,31 @@
            (with-current-buffer source-buffer
              (goto-char
               (point-min))
-             (loop for obj =
-                           (literate-read-internal source-buffer)
-                   if obj do
-                     (pp obj)
-                     (princ "\n")
-                   until
-                   (eobp)))))
+             (cl-loop for obj =
+                      (literate-read-internal source-buffer)
+                      if obj do
+                      (pp obj)
+                      (princ "\n")
+                      until
+                      (eobp)))))
       (when tail
         (insert "\n" tail))
       (save-buffer)
       (kill-current-buffer))))
+
+(ert-deftest literate-read-org-options nil "A spec of function to read org options."
+             (should
+              (equal
+               (literate-read-org-options " :tangle yes")
+               '(:tangle yes)))
+             (should
+              (equal
+               (literate-read-org-options " :tangle no  ")
+               '(:tangle no)))
+             (should
+              (equal
+               (literate-read-org-options ":tangle yes")
+               '(:tangle yes))))
 
 
 (provide 'literate-elisp)

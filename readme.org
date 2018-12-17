@@ -19,7 +19,9 @@
   - [[#a-demo-configuration][a demo configuration]]
   - [[#load-this-org-file-in-emacs][load this org file in .emacs]]
 - [[#test][Test]]
-  - [[#the-entry-point-of-all-tests][the entry point of all tests]]
+  - [[#introduction-1][Introduction]]
+  - [[#test-macro-aif][test macro aif]]
+  - [[#test-org-mode-configuration][test org mode configuration]]
 - [[#copyright-and-license][Copyright and license]]
 
 * Introduction
@@ -87,6 +89,34 @@ can load directly if such code block should load directly according to its code 
 * demo routines
 ** a demo macro
 As a demo org file, we write a simple demo macro ~aif~ here.
+
+Sometimes we want to use the expression value of ~if~ condition form when it yields non-nil.
+That's the purpose of ~aif~ which will bind variable ~it~ to the value of ~if~ condition form.
+
+We will use some common lisp macros, so let's load this library now.
+#+BEGIN_SRC elisp
+(require 'cl)
+#+END_SRC
+
+Let's implement ~if-bind~ firstly,
+which can bind the value of ~if~ condition form to any specified variable..
+#+BEGIN_SRC elisp
+(defmacro if-bind (var test &rest then/else)
+  "Anaphoric IF control structure.
+
+VAR (a symbol) will be bound to the primary value of TEST. If
+TEST returns a true value then THEN will be executed, otherwise
+ELSE will be executed."
+  (cl-assert (car then/else)
+             (then/else)
+             "IF-BIND missing THEN clause.")
+  (cl-destructuring-bind (then &optional else)
+      then/else
+    `(lexical-let ((,var ,test))
+       (if ,var ,then ,else))))
+#+END_SRC
+
+Now ~aif~ is easy to finish.
 #+BEGIN_SRC elisp
 (defmacro aif (test then &optional else)
     "Just like IF-BIND but the var is always IT."
@@ -118,17 +148,25 @@ Then to load routines and configurations in this org file, I add the following c
 (literate-load "~/projects/literate-elisp/readme.org")
 #+END_SRC
 * Test
-** the entry point of all tests
-Let's define a simple function as the entry point for the tests:
-#+BEGIN_SRC elisp
-(defun litereate-elisp-demo-test ()
-  (and (= 10 (aif 10 it 9))
-       (string= "\\.\\(org\\|org_archive\\)$" (loop for (x . y) in auto-mode-alist
-                                                    if (eq y 'org-mode)
-                                                      return x))))
-#+END_SRC
-Web service [[https://travis-ci.com/jingtaozf/literate-lisp][travis ci]] will load config file [[./.travis.yml]] to run these tests automatically 
+** Introduction
+We use [[https://www.gnu.org/software/emacs/manual/html_node/ert/Introduction.html#Introduction][ERT]] library to define and run tests.
+Web service [[https://travis-ci.com/jingtaozf/literate-lisp][travis ci]] will load config file [[./.travis.yml]] to run these tests automatically
 every time there is a new git change.
+** test macro aif
+#+BEGIN_SRC elisp
+(ert-deftest literate-demo-aif ()
+  "A spec of macro aif."
+  (should (equal (aif 10 it 9) 10)))
+#+END_SRC
+** test org mode configuration
+#+BEGIN_SRC elisp
+;; (ert-deftest literate-demo-org-mode ()
+;;   "A spec of macro aif."
+;;   (should (equal (loop for (x . y) in auto-mode-alist
+;;                        if (eq y 'org-mode)
+;;                          return x)
+;;                  "\\.\\(org\\|org_archive\\)$")))
+#+END_SRC
 * Copyright and license
 Code and documentation copyright 2018-2019 Jingtao Xu.
 

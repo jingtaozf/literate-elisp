@@ -19,7 +19,7 @@ install:
 
 script:
   - $EMACS -Q --batch -L . \
-    --eval "(load \"literate-elisp.el\")" \
-    --eval "(literate-load \"readme.org\")" \
-    --eval "(kill-emacs (if (and (fboundp 'litereate-elisp-demo-test) (funcall 'litereate-elisp-demo-test)) 0 1))"
+    --load literate-elisp \
+    --funcall literate-batch-load readme.org \
+    --funcall ert-run-tests-batch-and-exit
 

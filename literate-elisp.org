@@ -16,6 +16,7 @@
   - [[#loadcompile-org-file-with-new-syntax][load/compile org file with new syntax]]
   - [[#function-to-tangle-org-file-to-elisp-file][function to tangle org file to elisp file]]
 - [[#tests][Tests]]
+  - [[#introduction-1][Introduction]]
   - [[#test-cases][test cases]]
 - [[#references][References]]
 
@@ -61,6 +62,12 @@ as like the original emacs lisp reader.
 
 * Implementation
 ** Preparation
+
+We use common lisp macros in this library
+#+BEGIN_SRC elisp
+(require 'cl-lib)
+#+END_SRC
+
 There is a debug variable to switch on/off the log messages for this library.
 #+BEGIN_SRC elisp
 (defvar literate-elisp-debug-p nil)
@@ -174,18 +181,18 @@ read them or not should define,and it has three meanings:
 (defun literate-tangle-p (flag)
   "Tangle current elisp code block or not
 Argument FLAG: flag symbol."
-  (case flag
+  (cl-case flag
     (no nil)
     (t t)))
 #+END_SRC
   
 Let's implement a function to read options after ~#+BEGIN_SRC elisp~,
-and convert every key and value to a elisp symbol.
+and convert every key and value to a elisp symbol(test is here:ref:test-literate-read-org-options).
 #+BEGIN_SRC elisp
 (defun literate-read-org-options (options)
   "Read org code block options.
 Argument OPTIONS: a string to hold the options."
-  (loop for token in (split-string options)
+  (cl-loop for token in (split-string options)
         collect (intern token)))
 #+END_SRC
 
@@ -198,7 +205,7 @@ emacs original ~read~ function will try to skip all comments until it can get a 
 so when we call original ~read~ function and there are no valid elisp form left in one code block,
 it may reach ~#+end_src~,
 as it don't know how to read it, it will signal an error description ~(invalid-read-syntax "#")~.
-So when such error occur, we have to handle it with our literate reader.
+So when such error occur, we have to handle it with our literate reader(test is here:ref:test-empty-code-block).
 
 Please note that the stream position is just after the character ~#~ when above error occur.
 
@@ -256,7 +263,7 @@ Argument IN: input stream."
         ;; 1. if it is not inside an elisp syntax
   (cond ((not literate-elisp-org-code-blocks-p)
          ;; 1.1 check if it is `#+begin_src elisp'
-         (if (loop for i from 1 below (length literate-elisp-begin-src-id)
+         (if (cl-loop for i from 1 below (length literate-elisp-begin-src-id)
                    for c1 = (aref literate-elisp-begin-src-id i)
                    for c2 = (literate-next in)
                    thereis (not (char-equal c1 c2)))
@@ -267,7 +274,7 @@ Argument IN: input stream."
            (let ((org-options (literate-read-org-options (literate-read-until-end-of-line in))))
              (when literate-elisp-debug-p
                (message "found org elisp src block, options:%s" org-options))
-             (cond ((literate-tangle-p (getf org-options :tangle))
+             (cond ((literate-tangle-p (cl-getf org-options :tangle))
          ;; 1.4 if it should be tangled, switch to elisp syntax context
                     (when literate-elisp-debug-p
                       (message "enter into a elisp code block"))
@@ -279,7 +286,7 @@ Argument IN: input stream."
          (let ((c (literate-next in)))
            (when literate-elisp-debug-p
              (message "found #%c inside a org block" c))
-           (case c
+           (cl-case c
              ;; 2.1 check if it is ~#+~, which has only legal meaning when it is equal `#+end_src'
              (?\+ 
               (let ((line (literate-read-until-end-of-line in)))
@@ -301,18 +308,19 @@ we will try to keep this behavior.
 (defun literate-read-internal (&optional in)
   "A wrapper to follow the behavior of original read function.
 Argument IN: input stream."
-  (loop for form = (literate-read-datum in)
+  (cl-loop for form = (literate-read-datum in)
         if form
-          do (return form)
+          do (cl-return form)
              ;; if original read function return nil, just return it.
         if literate-elisp-org-code-blocks-p
-          do (return nil)
+          do (cl-return nil)
              ;; if it reach end of stream.
         if (null (literate-peek in))
-          do (return nil)))
+          do (cl-return nil)))
 #+END_SRC
 
 label:literate-read
+Now we define the literate read function which will bind to emacs variable [[https://www.gnu.org/software/emacs/manual/html_node/elisp/How-Programs-Do-Loading.html][load-read-function]].
 #+BEGIN_SRC elisp
 (defun literate-read (&optional in)
   "Literate read function.
@@ -321,7 +329,10 @@ Argument IN: input stream."
            (string-match "\\.org\\'" load-file-name))
     (literate-read-internal in)
     (read in)))
+#+END_SRC
 
+And the main exported function to do literate load.
+#+BEGIN_SRC elisp
 (defun literate-load (path)
   "Literate load function.
 Argument PATH: target file to load."
@@ -329,6 +340,19 @@ Argument PATH: target file to load."
         (literate-elisp-org-code-blocks-p nil))
     (load path)))
 #+END_SRC
+
+If you want to literate load file in batch mode, here it is:
+#+BEGIN_SRC elisp
+(defun literate-batch-load ()
+  "Literate load file in `command-line' arguments."
+  (or noninteractive
+      (signal 'user-error '("This function is only for use in batch mode")))
+  (if command-line-args-left
+    (literate-load (pop command-line-args-left))
+    (error "No argument left for `literate-batch-load'")))
+
+#+END_SRC
+
 
 *** an interactive command to load a literate org file directly from emacs
 #+BEGIN_SRC elisp
@@ -394,7 +418,7 @@ Argument FILE: target file"
        (with-output-to-string 
            (with-current-buffer source-buffer
              (goto-char (point-min))
-             (loop for obj = (literate-read-internal source-buffer)
+             (cl-loop for obj = (literate-read-internal source-buffer)
                    if obj
                      do (pp obj)
                         (princ "\n")
@@ -429,16 +453,30 @@ the following code should execute.
 #+END_SRC
 The head and tail lines require by [[https://github.com/melpa/melpa/blob/master/CONTRIBUTING.org][MELPA]] repository. 
 * Tests
+** Introduction
+We use [[https://www.gnu.org/software/emacs/manual/html_node/ert/Introduction.html#Introduction][ERT]] library to define and run tests.
+Web service [[https://travis-ci.com/jingtaozf/literate-lisp][travis ci]] will load config file [[./.travis.yml]] to run these tests automatically
+every time there is a new git change.
 ** test cases
 *** test the empty code block
+label:test-empty-code-block
 If one code block is empty, we will use emacs original ~read~ function, which will read ~#+end_src~
-and signal an error, let's test whether ~literate-elisp~ can handle it correctly
+and signal an error, let's test whether ~literate-elisp~ can handle it correctly.
 #+BEGIN_SRC elisp
-
+ 
 #+END_SRC
 
 #+BEGIN_SRC elisp
 ;; This is a comment line to test empty code block.
+#+END_SRC
+*** test literate-read-org-options
+label:test-literate-read-org-options
+#+BEGIN_SRC elisp
+(ert-deftest literate-read-org-options ()
+  "A spec of function to read org options."
+  (should (equal (literate-read-org-options " :tangle yes") '(:tangle yes)))
+  (should (equal (literate-read-org-options " :tangle no  ") '(:tangle no)))
+  (should (equal (literate-read-org-options ":tangle yes") '(:tangle yes))))
 #+END_SRC
 
 * References
