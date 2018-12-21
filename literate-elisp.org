@@ -30,8 +30,7 @@ If it can, then we will have an uniform development environment without keeping 
 of codes. Furthermore, we can jump to the elisp definition in an org file directly when required.
 That will be a convenient way for our daily development.
 * How to do it?
-In org mode, the comment line start with character ~#~ (see [[https://orgmode.org/manual/Comment-lines.html][org manual]] ), 
-and the emacs lisp codes surround by lines between ~#+begin_src elisp~ and ~#+end_src~ 
+In org mode, the emacs lisp codes surround by lines between ~#+begin_src elisp~ and ~#+end_src~ 
 (see [[https://orgmode.org/manual/Literal-examples.html][org manual]]).
 
 #+BEGIN_EXAMPLE
@@ -43,7 +42,7 @@ and the emacs lisp codes surround by lines between ~#+begin_src elisp~ and ~#+en
 So to let emacs lisp can read an org file directly, all lines out of surrounding
 by ~#+begin_src elisp~ and ~#+end_src~ should mean nothing, 
 and even codes surrounding by them should mean nothing 
-if the options in a code block request such behavior.
+if the [[https://orgmode.org/manual/Code-block-specific-header-arguments.html#Code-block-specific-header-arguments][header arguments]] in a code block request such behavior.
 
 Here is a trick, a new emacs lisp reader function get implemented
 (by binding elisp variable [[https://www.gnu.org/software/emacs/manual/html_node/elisp/How-Programs-Do-Loading.html][load-read-function]]) to replace original ~read~ function when
@@ -52,11 +51,11 @@ using elisp function ~load~ to load a org file.
 The new reader will make elisp reader enter into org mode syntax, 
 which means it will ignore all lines until it meet ~#+BEGIN_SRC elisp~.
 
-When ~#+begign_src elisp~ occur, org options for this code block will give us
+When ~#+begign_src elisp~ occur,  [[https://orgmode.org/manual/Code-block-specific-header-arguments.html#Code-block-specific-header-arguments][header arguments]] for this code block will give us
 a chance to switch back to normal emacs lisp reader or not.
 
 And if it switch back to normal emacs lisp reader, the end line ~#+END_SRC~ should mean the
-end of current code block, so if it occur, then the reader will switch back to org mode syntax.
+end of current code block, if it occur, then the reader will switch back to org mode syntax.
 if not, then the reader will continue to read subsequent stream 
 as like the original emacs lisp reader.
 
@@ -157,7 +156,7 @@ Argument PRED: predicate function."
 #+END_SRC
 
 Now reading until end of line is easy to implement, the ignored string return from this function 
-because it may be useful sometimes,for example when reading options after ~#+begin_src elisp~.
+because it may be useful sometimes,for example when reading [[https://orgmode.org/manual/Code-block-specific-header-arguments.html#Code-block-specific-header-arguments][header arguments]] after ~#+begin_src elisp~.
 #+BEGIN_SRC elisp
 (defun literate-read-until-end-of-line (in)
   "Skip over a line (move to `end-of-line').
@@ -168,13 +167,13 @@ Argument IN: input stream."
     (literate-next in)))
 #+END_SRC
 ** handle org mode syntax
-*** source code block option ~tangle~
+*** code block header argument ~tangle~
 There are a lot of different elisp codes occur in one org file, some for function implementation,
-some for demo, and some for test, so an [[https://orgmode.org/manual/Structure-of-code-blocks.html][org code block]] option ~tangle~ to decide to
-read them or not should define,and it has three meanings:
+some for demo, and some for test, so an [[https://orgmode.org/manual/Structure-of-code-blocks.html][org code block]] [[https://orgmode.org/manual/Code-block-specific-header-arguments.html#Code-block-specific-header-arguments][header arguments]] ~tangle~ to decide to
+read them or not should define,and it has two meanings:
 - yes \\
   It means that current code block should load normally, 
-  it is the default mode when the option ~tangle~ is not provided.
+  it is the default mode when the header argument ~tangle~ is not provided.
 - no \\
   It means that current code block should ignore by elisp reader.
 #+BEGIN_SRC elisp
@@ -186,13 +185,13 @@ Argument FLAG: flag symbol."
     (t t)))
 #+END_SRC
   
-Let's implement a function to read options after ~#+BEGIN_SRC elisp~,
-and convert every key and value to a elisp symbol(test is here:ref:test-literate-read-org-options).
+Let's implement a function to read [[https://orgmode.org/manual/Code-block-specific-header-arguments.html#Code-block-specific-header-arguments][header arguments]] after ~#+BEGIN_SRC elisp~,
+and convert every key and value to a elisp symbol(test is here:ref:test-literate-read-header-arguments).
 #+BEGIN_SRC elisp
-(defun literate-read-org-options (options)
-  "Read org code block options.
-Argument OPTIONS: a string to hold the options."
-  (cl-loop for token in (split-string options)
+(defun literate-read-header-arguments (arguments)
+  "Read org code block header arguments.
+Argument ARGUMENTS: a string to hold the arguments."
+  (cl-loop for token in (split-string arguments)
         collect (intern token)))
 #+END_SRC
 
@@ -252,7 +251,7 @@ Argment IN: input stream."
 **** The basic logic
    1. if it is inside an org syntax, check if it is ~#+begin_src elisp~
       1. if it is not, continue to use org syntax and ignore this line
-      2. if it is, read source block options for this code block
+      2. if it is, read source block header arguments for this code block
          1. if it should tangle, switch to elisp syntax context
          2. if it should not tangle, continue to use org syntax and ignore this line
    2. if it is inside an elisp syntax, then check if it is ~#+~
@@ -277,11 +276,11 @@ Argument IN: input stream."
          ;; 1.2. if it is not, continue to use org syntax and ignore this line
            (progn (literate-read-until-end-of-line in)
                   nil)
-         ;; 1.3 if it is, read source block options for this code block
-           (let ((org-options (literate-read-org-options (literate-read-until-end-of-line in))))
+         ;; 1.3 if it is, read source block header arguments for this code block
+           (let ((org-header-arguments (literate-read-header-arguments (literate-read-until-end-of-line in))))
              (when literate-elisp-debug-p
-               (message "found org elisp src block, options:%s" org-options))
-             (cond ((literate-tangle-p (cl-getf org-options :tangle))
+               (message "found org elisp src block, header-arguments:%s" org-header-arguments))
+             (cond ((literate-tangle-p (cl-getf org-header-arguments :tangle))
          ;; 1.4 if it should be tangled, switch to elisp syntax context
                     (when literate-elisp-debug-p
                       (message "enter into a elisp code block"))
@@ -504,14 +503,14 @@ and signal an error, let's test whether ~literate-elisp~ can handle it correctly
 #+BEGIN_SRC elisp
 ;; This is a comment line to test empty code block.
 #+END_SRC
-*** test literate-read-org-options
-label:test-literate-read-org-options
+*** test literate-read-header-arguments
+label:test-literate-read-header-arguments
 #+BEGIN_SRC elisp
-(ert-deftest literate-read-org-options ()
-  "A spec of function to read org options."
-  (should (equal (literate-read-org-options " :tangle yes") '(:tangle yes)))
-  (should (equal (literate-read-org-options " :tangle no  ") '(:tangle no)))
-  (should (equal (literate-read-org-options ":tangle yes") '(:tangle yes))))
+(ert-deftest literate-read-header-arguments ()
+  "A spec of function to read org header-arguments."
+  (should (equal (literate-read-header-arguments " :tangle yes") '(:tangle yes)))
+  (should (equal (literate-read-header-arguments " :tangle no  ") '(:tangle no)))
+  (should (equal (literate-read-header-arguments ":tangle yes") '(:tangle yes))))
 #+END_SRC
 
 * References

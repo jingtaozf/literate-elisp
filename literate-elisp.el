@@ -95,10 +95,10 @@ Argument FLAG: flag symbol."
     (no nil)
     (t t)))
 
-(defun literate-read-org-options (options)
-  "Read org code block options.
-Argument OPTIONS: a string to hold the options."
-  (cl-loop for token in (split-string options)
+(defun literate-read-header-arguments (arguments)
+  "Read org code block header arguments.
+Argument ARGUMENTS: a string to hold the arguments."
+  (cl-loop for token in (split-string arguments)
         collect (intern token)))
 
 (defvar literate-elisp-read 'read)
@@ -148,11 +148,11 @@ Argument IN: input stream."
          ;; 1.2. if it is not, continue to use org syntax and ignore this line
            (progn (literate-read-until-end-of-line in)
                   nil)
-         ;; 1.3 if it is, read source block options for this code block
-           (let ((org-options (literate-read-org-options (literate-read-until-end-of-line in))))
+         ;; 1.3 if it is, read source block header arguments for this code block
+           (let ((org-header-arguments (literate-read-header-arguments (literate-read-until-end-of-line in))))
              (when literate-elisp-debug-p
-               (message "found org elisp src block, options:%s" org-options))
-             (cond ((literate-tangle-p (cl-getf org-options :tangle))
+               (message "found org elisp src block, header-arguments:%s" org-header-arguments))
+             (cond ((literate-tangle-p (cl-getf org-header-arguments :tangle))
          ;; 1.4 if it should be tangled, switch to elisp syntax context
                     (when literate-elisp-debug-p
                       (message "enter into a elisp code block"))
@@ -293,11 +293,11 @@ Argument FILE: target file"
 
 ;; This is a comment line to test empty code block.
 
-(ert-deftest literate-read-org-options ()
-  "A spec of function to read org options."
-  (should (equal (literate-read-org-options " :tangle yes") '(:tangle yes)))
-  (should (equal (literate-read-org-options " :tangle no  ") '(:tangle no)))
-  (should (equal (literate-read-org-options ":tangle yes") '(:tangle yes))))
+(ert-deftest literate-read-header-arguments ()
+  "A spec of function to read org header-arguments."
+  (should (equal (literate-read-header-arguments " :tangle yes") '(:tangle yes)))
+  (should (equal (literate-read-header-arguments " :tangle no  ") '(:tangle no)))
+  (should (equal (literate-read-header-arguments ":tangle yes") '(:tangle yes))))
 
 
 (provide 'literate-elisp)
