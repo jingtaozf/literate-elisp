@@ -88,12 +88,16 @@ Argument IN: input stream."
                               (not (eq ch ?\n))))
     (literate-next in)))
 
+(defvar literate-elisp-test-p nil)
+
 (defun literate-tangle-p (flag)
   "Tangle current elisp code block or not.
 Argument FLAG: flag symbol."
   (cl-case flag
+    ((yes nil) t)
+    (test literate-elisp-test-p)
     (no nil)
-    (t t)))
+    (t nil)))
 
 (defun literate-read-header-arguments (arguments)
   "Read org code block header arguments.
@@ -101,38 +105,55 @@ Argument ARGUMENTS: a string to hold the arguments."
   (cl-loop for token in (split-string arguments)
         collect (intern token)))
 
+(defmacro with-fix-of-invalid-read-syntax (in &rest body)
+  "Fix read error `invalid-read-syntax'.
+Argument IN: input stream.
+Argument BODY: body codes."
+  `(condition-case ex
+        ,@body 
+      (invalid-read-syntax
+       (when literate-elisp-debug-p
+         (message "reach invalid read syntax %s at position %s"
+                  ex (literate-position in)))
+       (if (equal "#" (second ex))
+         ;; maybe this is #+end_src
+         (literate-read-after-sharpsign in)
+         ;; re-throw this signal because we don't know how to handle it.
+         (signal (car ex) (cdr err))))))
+
+(defun literate-ignore-white-space (in)
+  "Skip white space characters.
+Argument IN: input stream."
+  (while (cl-find (literate-peek in) '(?\n ?\ ?\t))
+    ;; discard current character.
+    (literate-next in)))
+
 (defvar literate-elisp-read 'read)
 
 (defun literate-read-datum (in)
   "Read and return a Lisp datum from the input stream.
-Argment IN: input stream."
+Argument IN: input stream."
+
+  (literate-ignore-white-space in)
   (let ((ch (literate-peek in)))
     (when literate-elisp-debug-p
       (message "literate-read-datum to character '%c'(position:%s)."
-               ch (literate-position in)))
-    (condition-case ex
-         (cond
-           ((not ch)
-            (error "End of file during parsing"))
-           ((and (not literate-elisp-org-code-blocks-p)
-                 (not (eq ch ?\#)))
-            (let ((line (literate-read-until-end-of-line in)))
-              (when literate-elisp-debug-p
-                (message "ignore line %s" line)))
-            nil)
-           ((eq ch ?\#)
-            (literate-next in)
-            (literate-read-after-sharpsign in))
-           (t (funcall literate-elisp-read in)))
-       (invalid-read-syntax
-        (when literate-elisp-debug-p
-          (message "reach invalid read syntax %s at position %s"
-                   ex (literate-position in)))
-        (if (equal "#" (second ex))
-          ;; maybe this is #+end_src
-          (literate-read-after-sharpsign in)
-          ;; re-throw this signal because we don't know how to handle it.
-          (signal (car ex) (cdr err)))))))
+               ch (literate-position in))) 
+
+    (with-fix-of-invalid-read-syntax in
+      (cond
+        ((not ch)
+         (error "End of file during parsing"))
+        ((and (not literate-elisp-org-code-blocks-p)
+              (not (eq ch ?\#)))
+         (let ((line (literate-read-until-end-of-line in)))
+           (when literate-elisp-debug-p
+             (message "ignore line %s" line)))
+         nil)
+        ((eq ch ?\#)
+         (literate-next in)
+         (literate-read-after-sharpsign in))
+        (t (funcall literate-elisp-read in))))))
 
 (defvar literate-elisp-begin-src-id "#+BEGIN_SRC elisp")
 (defun literate-read-after-sharpsign (in)
@@ -251,20 +272,28 @@ Arguemnt BUF: source buffer."
         (when (/= (point) (line-beginning-position))
           ;; if reader still in last line,move it to next line.
           (forward-line 1))
+        ;; skip whitespace to emulate the behavior of original emacs `read' function.
+
         (loop for line = (buffer-substring-no-properties (line-beginning-position) (line-end-position))
-              until (or (eobp) (string-equal (downcase line) "#+end_src"))
+              until (or (eobp)
+                        (string-equal (trim-string (downcase line)) "#+end_src"))
               do (loop for c across line
                        do (write-char c))
+                 (when literate-elisp-debug-p
+                   (message "tangle elisp line %s" line))
                  (write-char ?\n)
                  (forward-line 1)))))
 
-(cl-defun literate-tangle (file &key (el-file (concat (file-name-sans-extension file) ".el")) header tail)
+(cl-defun literate-tangle (file &key (el-file (concat (file-name-sans-extension file) ".el"))
+                                header tail
+                                test-p)
   "Literate tangle
 Argument FILE: target file"
   (let* ((source-buffer (find-file-noselect file))
          (target-buffer (find-file-noselect el-file))
          (org-path-name (concat (pathname-name file) "." (pathname-type file)))
          (literate-elisp-read 'literate-elisp-tangle-reader)
+         (literate-elisp-test-p test-p)
          (literate-elisp-org-code-blocks-p nil))
     (with-current-buffer target-buffer
       (delete-region (point-min) (point-max))
@@ -288,16 +317,6 @@ Argument FILE: target file"
         (insert "\n" tail))
       (save-buffer)
       (kill-current-buffer))))
-
- 
-
-;; This is a comment line to test empty code block.
-
-(ert-deftest literate-read-header-arguments ()
-  "A spec of function to read org header-arguments."
-  (should (equal (literate-read-header-arguments " :tangle yes") '(:tangle yes)))
-  (should (equal (literate-read-header-arguments " :tangle no  ") '(:tangle no)))
-  (should (equal (literate-read-header-arguments ":tangle yes") '(:tangle yes))))
 
 
 (provide 'literate-elisp)

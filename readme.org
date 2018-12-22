@@ -154,13 +154,13 @@ We use [[https://www.gnu.org/software/emacs/manual/html_node/ert/Introduction.ht
 Web service [[https://travis-ci.com/jingtaozf/literate-lisp][travis ci]] will load config file [[./.travis.yml]] to run these tests automatically
 every time there is a new git change.
 ** test macro aif
-#+BEGIN_SRC elisp
+#+BEGIN_SRC elisp :tangle test
 (ert-deftest literate-demo-aif ()
   "A spec of macro aif."
   (should (equal (aif 10 it 9) 10)))
 #+END_SRC
 ** test org mode configuration
-#+BEGIN_SRC elisp
+#+BEGIN_SRC elisp :tangle test
 (ert-deftest literate-demo-org-mode ()
   "A spec of macro aif."
   (should (equal (cl-loop for (x . y) in auto-mode-alist
