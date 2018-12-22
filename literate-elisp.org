@@ -143,6 +143,8 @@ then the whole line should ignore, so there should exist such a function.
 
 Before then, let's implement an abstract method to ~read characters repeatly while a predication meet~. 
 
+The ignored string return from this function 
+because it may be useful sometimes,for example when reading [[https://orgmode.org/manual/Code-block-specific-header-arguments.html#Code-block-specific-header-arguments][header arguments]] after ~#+begin_src elisp~.
 #+BEGIN_SRC elisp
 (defun literate-read-while (in pred)
   "Read and return a string from the input stream, as long as the predicate.
@@ -155,8 +157,7 @@ Argument PRED: predicate function."
     (apply #'string (nreverse chars))))
 #+END_SRC
 
-Now reading until end of line is easy to implement, the ignored string return from this function 
-because it may be useful sometimes,for example when reading [[https://orgmode.org/manual/Code-block-specific-header-arguments.html#Code-block-specific-header-arguments][header arguments]] after ~#+begin_src elisp~.
+Now reading until end of line is easy to implement.
 #+BEGIN_SRC elisp
 (defun literate-read-until-end-of-line (in)
   "Skip over a line (move to `end-of-line').
@@ -169,7 +170,7 @@ Argument IN: input stream."
 ** handle org mode syntax
 *** code block header argument ~tangle~
 There are a lot of different elisp codes occur in one org file, some for function implementation,
-some for demo, and some for test, so an [[https://orgmode.org/manual/Structure-of-code-blocks.html][org code block]] [[https://orgmode.org/manual/Code-block-specific-header-arguments.html#Code-block-specific-header-arguments][header arguments]] ~tangle~ to decide to
+some for demo, and some for test, so an [[https://orgmode.org/manual/Structure-of-code-blocks.html][org code block]] [[https://orgmode.org/manual/Code-block-specific-header-arguments.html#Code-block-specific-header-arguments][header argument]] ~tangle~ to decide to
 read them or not should define,and it has two meanings:
 - yes \\
   It means that current code block should load normally, 
@@ -182,6 +183,7 @@ read them or not should define,and it has two meanings:
 (defvar literate-elisp-test-p nil)
   #+END_SRC
 
+Now let's implement above rule.
 #+BEGIN_SRC elisp
 (defun literate-tangle-p (flag)
   "Tangle current elisp code block or not.
@@ -193,7 +195,7 @@ Argument FLAG: flag symbol."
     (t nil)))
 #+END_SRC
   
-Let's implement a function to read [[https://orgmode.org/manual/Code-block-specific-header-arguments.html#Code-block-specific-header-arguments][header arguments]] after ~#+BEGIN_SRC elisp~,
+Let's also implement a function to read [[https://orgmode.org/manual/Code-block-specific-header-arguments.html#Code-block-specific-header-arguments][header arguments]] after ~#+BEGIN_SRC elisp~,
 and convert every key and value to a elisp symbol(test is here:ref:test-literate-read-header-arguments).
 #+BEGIN_SRC elisp
 (defun literate-read-header-arguments (arguments)
@@ -208,7 +210,7 @@ Emacs original ~read~ function will try to skip all comments until it can get a 
 so when we call original ~read~ function and there are no valid elisp form left in one code block,
 it may reach ~#+end_src~,
 as it don't know how to read it, it will signal an error description ~(invalid-read-syntax "#")~.
-So when such error occur, we have to handle it with our literate reader(test is here:ref:test-empty-code-block).
+So when such error occur, we have to handle it by ourself(test is here:ref:test-empty-code-block).
 
 Please note that the stream position is just after the character ~#~ when above error occur.
 #+BEGIN_SRC elisp
@@ -230,8 +232,10 @@ Argument BODY: body codes."
 #+END_SRC
 
 *** handle prefix spaces.
-Sometimes ~#+begin_src elisp~ and ~#+end_src~ (when using a custom reader when tangling) may have prefix spaces,
+Sometimes ~#+begin_src elisp~ and ~#+end_src~ may have prefix spaces,
 let's ignore them carefully.
+
+If it is not processed correctly, the reader may enter into an infinte loop, especially when using a custom reader to tangle codes.
 #+BEGIN_SRC elisp
 (defun literate-ignore-white-space (in)
   "Skip white space characters.
@@ -405,7 +409,7 @@ Argument FILE: target file path."
 
 *** a function to byte compile a literate org file
 
-*This feature is under development and not work yet*
+*This feature is under development and not work yet.*
 
 Currently(2018.12.16) Emacs [[https://github.com/emacs-mirror/emacs/blob/master/lisp/emacs-lisp/bytecomp.el][bytecomp]] library always use function ~read~ to read elisp forms,
 instead of the function specified by variable ~load-read-function~.so we modify the symbol function
@@ -436,7 +440,8 @@ Arguemnt LOAD: load the file after compiling."
 #+END_SRC
 
 ** function to tangle org file to elisp file
-To build an emacs lisp file from an org file without depending on ~literate-elisp~ library, we need tangle an org file.
+To build an emacs lisp file from an org file without depending on ~literate-elisp~ library,
+we need tangle an org file to an emacs lisp file(.el).
 
 Firstly, when tangle elisp codes, we don't want to use original emacs ~read~ function to read them because it will ignore comment lines
 and it's hard for us to revert them back to a pretty print code, so we define a new reader function and bind it to 
@@ -454,7 +459,6 @@ Arguemnt BUF: source buffer."
         (when (/= (point) (line-beginning-position))
           ;; if reader still in last line,move it to next line.
           (forward-line 1))
-        ;; skip whitespace to emulate the behavior of original emacs `read' function.
 
         (loop for line = (buffer-substring-no-properties (line-beginning-position) (line-end-position))
               until (or (eobp)
@@ -544,7 +548,7 @@ and signal an error, let's test whether ~literate-elisp~ can read it gracefully.
 #+BEGIN_SRC elisp :tangle test
 ;; This is a comment line to test empty code block.
 #+END_SRC
-*** test code block having prefix space.
+*** test code block with prefix space.
 Some code block have white spaces before ~#+begin_src elisp~, let's test whether ~literate-elisp~ can read it normally.
   #+BEGIN_SRC elisp :tangle test
 (defvar literate-elisp-a-test-variable 10)

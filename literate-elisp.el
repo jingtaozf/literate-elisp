@@ -272,7 +272,6 @@ Arguemnt BUF: source buffer."
         (when (/= (point) (line-beginning-position))
           ;; if reader still in last line,move it to next line.
           (forward-line 1))
-        ;; skip whitespace to emulate the behavior of original emacs `read' function.
 
         (loop for line = (buffer-substring-no-properties (line-beginning-position) (line-end-position))
               until (or (eobp)
