@@ -29,6 +29,9 @@ But What if I want to write a library or a configuration file in org file and lo
 If it can, then we will have an uniform development environment without keeping multiple copies
 of codes. Furthermore, we can jump to the elisp definition in an org file directly when required.
 That will be a convenient way for our daily development.
+
+So is this libray, which extends the emacs [[https://www.gnu.org/software/emacs/manual/html_node/elisp/How-Programs-Do-Loading.html#How-Programs-Do-Loading][load]] mechanism so emacs can load org files as lisp source files directly.
+
 * How to do it?
 In org mode, the emacs lisp codes surround by lines between ~#+begin_src elisp~ and ~#+end_src~ 
 (see [[https://orgmode.org/manual/Literal-examples.html][org manual]]).
