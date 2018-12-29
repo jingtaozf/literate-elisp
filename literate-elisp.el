@@ -110,7 +110,7 @@ Argument ARGUMENTS: a string to hold the arguments."
 Argument IN: input stream.
 Argument BODY: body codes."
   `(condition-case ex
-        ,@body 
+        ,@body
       (invalid-read-syntax
        (when literate-elisp-debug-p
          (message "reach invalid read syntax %s at position %s"
@@ -138,7 +138,7 @@ Argument IN: input stream."
   (let ((ch (literate-elisp-peek in)))
     (when literate-elisp-debug-p
       (message "literate-elisp-read-datum to character '%c'(position:%s)."
-               ch (literate-elisp-position in))) 
+               ch (literate-elisp-position in)))
 
     (literate-elisp-fix-invalid-read-syntax in
       (cond
@@ -187,11 +187,11 @@ Argument IN: input stream."
              (message "found #%c inside a org block" c))
            (cl-case c
              ;; 2.1 check if it is ~#+~, which has only legal meaning when it is equal `#+end_src'
-             (?\+ 
+             (?\+
               (let ((line (literate-elisp-read-until-end-of-line in)))
                 (when literate-elisp-debug-p
                   (message "found org elisp end block:%s" line)))
-             ;; 2.2. if it is, then switch to org mode syntax. 
+             ;; 2.2. if it is, then switch to org mode syntax.
               (setf literate-elisp-org-code-blocks-p nil)
               nil)
              ;; 2.3 if it is not, then use original elip reader to read the following stream
