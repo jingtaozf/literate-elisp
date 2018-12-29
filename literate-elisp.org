@@ -85,9 +85,9 @@ To give us the ability of syntax analysis,
 stream read actions such as ~peek a character~ or ~read and drop next character~ should get implemented.
 
 The [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Input-Streams.html#Input-Streams][input streams]] are the same streams used by the original elisp [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Input-Functions.html#Input-Functions][read]] function.
-*** literate-peek
+*** literate-elisp-peek
 #+BEGIN_SRC elisp
-(defun literate-peek (in)
+(defun literate-elisp-peek (in)
   "Return the next character without dropping it from the stream.
 Argument IN: input stream."
   (cond ((bufferp in)
@@ -104,9 +104,9 @@ Argument IN: input stream."
              (funcall in c))
            c))))
 #+END_SRC
-*** literate-next
+*** literate-elisp-next
 #+BEGIN_SRC elisp
-(defun literate-next (in)
+(defun literate-elisp-next (in)
   "Given a stream function, return and discard the next character.
 Argument IN: input stream."
   (cond ((bufferp in)
@@ -124,10 +124,10 @@ Argument IN: input stream."
         ((functionp in)
          (funcall in))))
 #+END_SRC
-*** literate-position
+*** literate-elisp-position
 This functions is a helpful function to debug our library.
 #+BEGIN_SRC elisp
-(defun literate-position (in)
+(defun literate-elisp-position (in)
   "Return the current position from the stream.
 Argument IN: input stream."
   (cond ((bufferp in)
@@ -140,7 +140,7 @@ Argument IN: input stream."
          "Unknown")))
 #+END_SRC
 
-*** literate-read-until-end-of-line
+*** literate-elisp-read-until-end-of-line
 when read org file character by character, if current line determines as an org syntax,
 then the whole line should ignore, so there should exist such a function.
 
@@ -149,26 +149,26 @@ Before then, let's implement an abstract method to ~read characters repeatly whi
 The ignored string return from this function 
 because it may be useful sometimes,for example when reading [[https://orgmode.org/manual/Code-block-specific-header-arguments.html#Code-block-specific-header-arguments][header arguments]] after ~#+begin_src elisp~.
 #+BEGIN_SRC elisp
-(defun literate-read-while (in pred)
+(defun literate-elisp-read-while (in pred)
   "Read and return a string from the input stream, as long as the predicate.
 Argument IN: input stream.
 Argument PRED: predicate function."
   (let ((chars (list)) ch)
-    (while (and (setq ch (literate-peek in))
+    (while (and (setq ch (literate-elisp-peek in))
                 (funcall pred ch))
-      (push (literate-next in) chars))
+      (push (literate-elisp-next in) chars))
     (apply #'string (nreverse chars))))
 #+END_SRC
 
 Now reading until end of line is easy to implement.
 #+BEGIN_SRC elisp
-(defun literate-read-until-end-of-line (in)
+(defun literate-elisp-read-until-end-of-line (in)
   "Skip over a line (move to `end-of-line').
 Argument IN: input stream."
   (prog1
-    (literate-read-while in (lambda (ch)
+    (literate-elisp-read-while in (lambda (ch)
                               (not (eq ch ?\n))))
-    (literate-next in)))
+    (literate-elisp-next in)))
 #+END_SRC
 ** handle org mode syntax
 *** code block header argument ~tangle~
@@ -188,7 +188,7 @@ read them or not should define,and it has two meanings:
 
 Now let's implement above rule.
 #+BEGIN_SRC elisp
-(defun literate-tangle-p (flag)
+(defun literate-elisp-tangle-p (flag)
   "Tangle current elisp code block or not.
 Argument FLAG: flag symbol."
   (cl-case flag
@@ -199,9 +199,9 @@ Argument FLAG: flag symbol."
 #+END_SRC
   
 Let's also implement a function to read [[https://orgmode.org/manual/Code-block-specific-header-arguments.html#Code-block-specific-header-arguments][header arguments]] after ~#+BEGIN_SRC elisp~,
-and convert every key and value to a elisp symbol(test is here:ref:test-literate-read-header-arguments).
+and convert every key and value to a elisp symbol(test is here:ref:test-literate-elisp-read-header-arguments).
 #+BEGIN_SRC elisp
-(defun literate-read-header-arguments (arguments)
+(defun literate-elisp-read-header-arguments (arguments)
   "Read org code block header arguments.
 Argument ARGUMENTS: a string to hold the arguments."
   (cl-loop for token in (split-string arguments)
@@ -217,7 +217,7 @@ So when such error occur, we have to handle it by ourself(test is here:ref:test-
 
 Please note that the stream position is just after the character ~#~ when above error occur.
 #+BEGIN_SRC elisp
-(defmacro with-fix-of-invalid-read-syntax (in &rest body)
+(defmacro literate-elisp-fix-invalid-read-syntax (in &rest body)
   "Fix read error `invalid-read-syntax'.
 Argument IN: input stream.
 Argument BODY: body codes."
@@ -226,10 +226,10 @@ Argument BODY: body codes."
       (invalid-read-syntax
        (when literate-elisp-debug-p
          (message "reach invalid read syntax %s at position %s"
-                  ex (literate-position in)))
+                  ex (literate-elisp-position in)))
        (if (equal "#" (second ex))
          ;; maybe this is #+end_src
-         (literate-read-after-sharpsign in)
+         (literate-elisp-read-after-sharpsign in)
          ;; re-throw this signal because we don't know how to handle it.
          (signal (car ex) (cdr err))))))
 #+END_SRC
@@ -240,12 +240,12 @@ let's ignore them carefully.
 
 If it is not processed correctly, the reader may enter into an infinte loop, especially when using a custom reader to tangle codes.
 #+BEGIN_SRC elisp
-(defun literate-ignore-white-space (in)
+(defun literate-elisp-ignore-white-space (in)
   "Skip white space characters.
 Argument IN: input stream."
-  (while (cl-find (literate-peek in) '(?\n ?\ ?\t))
+  (while (cl-find (literate-elisp-peek in) '(?\n ?\ ?\t))
     ;; discard current character.
-    (literate-next in)))
+    (literate-elisp-next in)))
 #+END_SRC
 
 *** alternative elisp read function
@@ -261,29 +261,29 @@ It's time to implement the main routine to read literate org file.
 The basic idea is simple, ignoring all lines out of elisp source block,
 and be careful about the special character ~#~.
 #+BEGIN_SRC elisp
-(defun literate-read-datum (in)
+(defun literate-elisp-read-datum (in)
   "Read and return a Lisp datum from the input stream.
 Argument IN: input stream."
 
-  (literate-ignore-white-space in)
-  (let ((ch (literate-peek in)))
+  (literate-elisp-ignore-white-space in)
+  (let ((ch (literate-elisp-peek in)))
     (when literate-elisp-debug-p
-      (message "literate-read-datum to character '%c'(position:%s)."
-               ch (literate-position in))) 
+      (message "literate-elisp-read-datum to character '%c'(position:%s)."
+               ch (literate-elisp-position in))) 
 
-    (with-fix-of-invalid-read-syntax in
+    (literate-elisp-fix-invalid-read-syntax in
       (cond
         ((not ch)
          (error "End of file during parsing"))
         ((and (not literate-elisp-org-code-blocks-p)
               (not (eq ch ?\#)))
-         (let ((line (literate-read-until-end-of-line in)))
+         (let ((line (literate-elisp-read-until-end-of-line in)))
            (when literate-elisp-debug-p
              (message "ignore line %s" line)))
          nil)
         ((eq ch ?\#)
-         (literate-next in)
-         (literate-read-after-sharpsign in))
+         (literate-elisp-next in)
+         (literate-elisp-read-after-sharpsign in))
         (t (funcall literate-elisp-read in))))))
 #+END_SRC
 *** how to handle when meet ~#~
@@ -303,7 +303,7 @@ Argument IN: input stream."
 
 #+BEGIN_SRC elisp
 (defvar literate-elisp-begin-src-id "#+BEGIN_SRC elisp")
-(defun literate-read-after-sharpsign (in)
+(defun literate-elisp-read-after-sharpsign (in)
   "Read after #.
 Argument IN: input stream."
         ;; 1. if it is not inside an elisp syntax
@@ -311,16 +311,16 @@ Argument IN: input stream."
          ;; 1.1 check if it is `#+begin_src elisp'
          (if (cl-loop for i from 1 below (length literate-elisp-begin-src-id)
                    for c1 = (aref literate-elisp-begin-src-id i)
-                   for c2 = (literate-next in)
+                   for c2 = (literate-elisp-next in)
                    thereis (not (char-equal c1 c2)))
          ;; 1.2. if it is not, continue to use org syntax and ignore this line
-           (progn (literate-read-until-end-of-line in)
+           (progn (literate-elisp-read-until-end-of-line in)
                   nil)
          ;; 1.3 if it is, read source block header arguments for this code block
-           (let ((org-header-arguments (literate-read-header-arguments (literate-read-until-end-of-line in))))
+           (let ((org-header-arguments (literate-elisp-read-header-arguments (literate-elisp-read-until-end-of-line in))))
              (when literate-elisp-debug-p
                (message "found org elisp src block, header-arguments:%s" org-header-arguments))
-             (cond ((literate-tangle-p (cl-getf org-header-arguments :tangle))
+             (cond ((literate-elisp-tangle-p (cl-getf org-header-arguments :tangle))
          ;; 1.4 if it should be tangled, switch to elisp syntax context
                     (when literate-elisp-debug-p
                       (message "enter into a elisp code block"))
@@ -329,13 +329,13 @@ Argument IN: input stream."
          ;; 1.5 if it should not be tangled, continue to use org syntax and ignore this line
         (t
         ;; 2. if it is inside an elisp syntax
-         (let ((c (literate-next in)))
+         (let ((c (literate-elisp-next in)))
            (when literate-elisp-debug-p
              (message "found #%c inside a org block" c))
            (cl-case c
              ;; 2.1 check if it is ~#+~, which has only legal meaning when it is equal `#+end_src'
              (?\+ 
-              (let ((line (literate-read-until-end-of-line in)))
+              (let ((line (literate-elisp-read-until-end-of-line in)))
                 (when literate-elisp-debug-p
                   (message "found org elisp end block:%s" line)))
              ;; 2.2. if it is, then switch to org mode syntax. 
@@ -351,63 +351,62 @@ Argument IN: input stream."
 original function ~read~ will read until it can get a valid lisp form,
 we will try to keep this behavior.
 #+BEGIN_SRC elisp
-(defun literate-read-internal (&optional in)
+(defun literate-elisp-read-internal (&optional in)
   "A wrapper to follow the behavior of original read function.
 Argument IN: input stream."
-  (cl-loop for form = (literate-read-datum in)
+  (cl-loop for form = (literate-elisp-read-datum in)
         if form
           do (cl-return form)
              ;; if original read function return nil, just return it.
         if literate-elisp-org-code-blocks-p
           do (cl-return nil)
              ;; if it reach end of stream.
-        if (null (literate-peek in))
+        if (null (literate-elisp-peek in))
           do (cl-return nil)))
 #+END_SRC
 
-label:literate-read
+label:literate-elisp-read
 Now we define the literate read function which will bind to emacs variable [[https://www.gnu.org/software/emacs/manual/html_node/elisp/How-Programs-Do-Loading.html][load-read-function]].
 #+BEGIN_SRC elisp
-(defun literate-read (&optional in)
+(defun literate-elisp-read (&optional in)
   "Literate read function.
 Argument IN: input stream."
   (if (and load-file-name
            (string-match "\\.org\\'" load-file-name))
-    (literate-read-internal in)
+    (literate-elisp-read-internal in)
     (read in)))
 #+END_SRC
 
 And the main exported function to do literate load.
 #+BEGIN_SRC elisp
-(defun literate-load (path)
+(defun literate-elisp-load (path)
   "Literate load function.
 Argument PATH: target file to load."
-  (let ((load-read-function (symbol-function 'literate-read))
+  (let ((load-read-function (symbol-function 'literate-elisp-read))
         (literate-elisp-org-code-blocks-p nil))
     (load path)))
 #+END_SRC
 
 If you want to literate load file in batch mode, here it is:
 #+BEGIN_SRC elisp
-(defun literate-batch-load ()
+(defun literate-elisp-batch-load ()
   "Literate load file in `command-line' arguments."
   (or noninteractive
       (signal 'user-error '("This function is only for use in batch mode")))
   (if command-line-args-left
-    (literate-load (pop command-line-args-left))
-    (error "No argument left for `literate-batch-load'")))
+    (literate-elisp-load (pop command-line-args-left))
+    (error "No argument left for `literate-elisp-batch-load'")))
 
 #+END_SRC
 
-
 *** an interactive command to load a literate org file directly from emacs
 #+BEGIN_SRC elisp
-(defun literate-load-file (file)
+(defun literate-elisp-load-file (file)
   "Load the Lisp file named FILE.
 Argument FILE: target file path."
   ;; This is a case where .elc and .so/.dll make a lot of sense.
   (interactive (list (read-file-name "Load org file: " nil nil 'lambda)))
-  (literate-load (expand-file-name file)))
+  (literate-elisp-load (expand-file-name file)))
 #+END_SRC
 
 *** a function to byte compile a literate org file
@@ -418,7 +417,7 @@ Currently(2018.12.16) Emacs [[https://github.com/emacs-mirror/emacs/blob/master/
 instead of the function specified by variable ~load-read-function~.so we modify the symbol function
 of read when byte compiling org file.
 #+BEGIN_SRC elisp
-(defun literate-byte-compile-file (file &optional load)
+(defun literate-elisp-byte-compile-file (file &optional load)
   "Byte compile an org file.
 Argument FILE: file to compile.
 Arguemnt LOAD: load the file after compiling."
@@ -436,7 +435,7 @@ Arguemnt LOAD: load the file after compiling."
   (let ((literate-elisp-org-code-blocks-p nil)
         (load-file-name buffer-file-name)
         (original-read (symbol-function 'read)))
-    (fset 'read (symbol-function 'literate-read-internal))
+    (fset 'read (symbol-function 'literate-elisp-read-internal))
     (unwind-protect
         (byte-compile-file file load)
       (fset 'read original-read))))
@@ -476,7 +475,7 @@ Arguemnt BUF: source buffer."
 
 Now we can tangle the elisp code blocks with the following codes.
 #+BEGIN_SRC elisp
-(cl-defun literate-tangle (file &key (el-file (concat (file-name-sans-extension file) ".el"))
+(cl-defun literate-elisp-tangle (file &key (el-file (concat (file-name-sans-extension file) ".el"))
                                 header tail
                                 test-p)
   "Literate tangle
@@ -491,14 +490,14 @@ Argument FILE: target file"
       (delete-region (point-min) (point-max))
       (when header
         (insert header "\n"))
-      (insert ";; This file is automatically generated by function `literate-tangle' from file `" org-path-name "'.\n"
+      (insert ";; This file is automatically generated by function `literate-elisp-tangle' from file `" org-path-name "'.\n"
               ";; It is not designed to be readable by a human and is generated to load by Emacs directly without library `literate-elisp'.\n"
               ";; you should read file `" org-path-name "' to find out the usage and implementation detail of this source file.\n\n"
               ";;; Code:\n\n"))
 
     (with-current-buffer source-buffer
       (goto-char (point-min))
-      (cl-loop for obj = (literate-read-internal source-buffer)
+      (cl-loop for obj = (literate-elisp-read-internal source-buffer)
                if obj
                do (with-current-buffer target-buffer
                     (insert obj "\n"))
@@ -514,7 +513,7 @@ Argument FILE: target file"
 And when a new version of [[./literate-elisp.el]] can release from this file, 
 the following code should execute.
 #+BEGIN_SRC elisp :tangle no
-(literate-tangle
+(literate-elisp-tangle
  "literate-elisp.org"
  :header ";;; literate-elisp.el --- literate program to write elisp codes in org mode  -*- lexical-binding: t; -*-
 
@@ -525,7 +524,7 @@ the following code should execute.
 ;; Version: 0.1
 ;; Keywords: lisp docs extensions tools
 ;; URL: https://github.com/jingtaozf/literate-elisp
-;; Package-Requires: ((emacs \"24\"))
+;; Package-Requires: ((cl-lib \"0.6\") (emacs \"24\"))
 
 ;;; Commentary:
 "
@@ -534,6 +533,16 @@ the following code should execute.
 ")
 #+END_SRC
 The head and tail lines require by [[https://github.com/melpa/melpa/blob/master/CONTRIBUTING.org][MELPA]] repository. 
+
+Now let's check the elisp file to meet the requirement of [[https://github.com/melpa/melpa/blob/master/CONTRIBUTING.org][MELPA]].
+#+BEGIN_SRC elisp :tangle no
+(with-current-buffer (find-file "literate-elisp.el")
+  (checkdoc)
+  (package-lint-current-buffer))
+#+END_SRC
+
+
+
 * Tests
 ** Introduction
 We use [[https://www.gnu.org/software/emacs/manual/html_node/ert/Introduction.html#Introduction][ERT]] library to define and run tests.
@@ -559,19 +568,19 @@ Some code block have white spaces before ~#+begin_src elisp~, let's test whether
   
 Let's write a test case for above code block.
 #+BEGIN_SRC elisp :tangle test
-(ert-deftest literate-read-code-block-with-prefix-space ()
+(ert-deftest literate-elisp-read-code-block-with-prefix-space ()
   "A spec of code block with prefix space."
   (should (equal literate-elisp-a-test-variable 10)))
 #+END_SRC
 
-*** test literate-read-header-arguments
-label:test-literate-read-header-arguments
+*** test literate-elisp-read-header-arguments
+label:test-literate-elisp-read-header-arguments
 #+BEGIN_SRC elisp :tangle test
-(ert-deftest literate-read-header-arguments ()
+(ert-deftest literate-elisp-read-header-arguments ()
   "A spec of function to read org header-arguments."
-  (should (equal (literate-read-header-arguments " :tangle yes") '(:tangle yes)))
-  (should (equal (literate-read-header-arguments " :tangle no  ") '(:tangle no)))
-  (should (equal (literate-read-header-arguments ":tangle yes") '(:tangle yes))))
+  (should (equal (literate-elisp-read-header-arguments " :tangle yes") '(:tangle yes)))
+  (should (equal (literate-elisp-read-header-arguments " :tangle no  ") '(:tangle no)))
+  (should (equal (literate-elisp-read-header-arguments ":tangle yes") '(:tangle yes))))
 #+END_SRC
 
 * References

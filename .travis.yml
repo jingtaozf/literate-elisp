@@ -28,7 +28,7 @@ script:
   - emacs -Q --batch -L .
     --load literate-elisp
     --eval "(setf literate-elisp-test-p t)"
-    --funcall literate-batch-load literate-elisp.org
-    --funcall literate-batch-load readme.org
+    --funcall literate-elisp-batch-load literate-elisp.org
+    --funcall literate-elisp-batch-load readme.org
     --funcall ert-run-tests-batch-and-exit
 

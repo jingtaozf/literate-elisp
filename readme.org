@@ -31,7 +31,7 @@ It extends the emacs [[https://www.gnu.org/software/emacs/manual/html_node/elisp
 
 The implementation details of [[https://github.com/jingtaozf/literate-elisp][literate-elisp]] is in file [[./literate-elisp.org]] ([[./literate-elisp.pdf][pdf version]]).
 
-This library export an elisp function ~literate-load~ 
+This library export an elisp function ~literate-elisp-load~ 
 and this function can load elisp codes in all elisp code blocks 
 surrounded by ~#+begin_src lisp~ and ~#+end_src~ in an org file directly.
 
@@ -46,7 +46,7 @@ For example, if you have an org file and it contains such elisp code block:
 Then you can load this org file like this:
 #+BEGIN_SRC elisp :tangle no
 (load "~/projects/literate-elisp/literate-elisp.el")
-(literate-load "test.org")
+(literate-elisp-load "test.org")
 #+END_SRC
 Now the elisp function ~test~ is ready to use, 
 and you can jump to the definition of ~test~ in the org file by using emacs library [[https://github.com/emacs-mirror/emacs/blob/master/lisp/emacs-lisp/find-func.el][find-func]] directly
@@ -83,10 +83,10 @@ The org file can open as [[https://polymode.github.io/][polymode]],the following
 #+END_SRC
 * load this org file 
 
-This org file can load by elisp function ~literate-load~ directly and all elisp code blocks in this org file
+This org file can load by elisp function ~literate-elisp-load~ directly and all elisp code blocks in this org file
 can load directly if such code block should load directly according to its code block options.
 #+BEGIN_SRC elisp :tangle no
-(literate-load "readme.org")
+(literate-elisp-load "readme.org")
 #+END_SRC
 * demo routines
 ** a demo macro
@@ -131,7 +131,7 @@ You can use it like this
             10)
     (message "it is %s" it))
 #+END_SRC
-After loading this org file by function ~literate-load~,
+After loading this org file by function ~literate-elisp-load~,
 you can use macro ~aif~ directly in your other elisp files.
 
 * a demo emacs configuration 
@@ -147,7 +147,7 @@ For example, I can write elisp configurations directly in this file:
 Then to load routines and configurations in this org file, I add the following codes in my ~.emacs~
 #+BEGIN_SRC elisp :tangle no
 (load "~/projects/literate-elisp/literate-elisp.el")
-(literate-load "~/projects/literate-elisp/readme.org")
+(literate-elisp-load "~/projects/literate-elisp/readme.org")
 #+END_SRC
 * Test
 ** Introduction
