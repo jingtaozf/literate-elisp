@@ -6,6 +6,8 @@
 #+INFOJS_OPT:  view:nil toc:nil ltoc:t mouse:underline buttons:0 path:http://orgmode.org/org-info.js
 
 [[https://travis-ci.com/jingtaozf/literate-elisp][file:https://travis-ci.com/jingtaozf/literate-elisp.svg?branch=master]]
+[[https://melpa.org/#/literate-elisp][file:https://melpa.org/packages/literate-elisp-badge.svg]]
+
 
 * Table of Contents                                                   :TOC:
 - [[#introduction][Introduction]]
