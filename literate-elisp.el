@@ -41,6 +41,9 @@
 
 (defvar literate-elisp-org-code-blocks-p nil)
 
+(defvar literate-elisp-begin-src-id "#+BEGIN_SRC elisp")
+(defvar literate-elisp-end-src-id "#+END_SRC")
+
 (defun literate-elisp-peek (in)
   "Return the next character without dropping it from the stream.
 Argument IN: input stream."
@@ -123,6 +126,11 @@ Argument ARGUMENTS: a string to hold the arguments."
   (cl-loop for token in (split-string arguments)
         collect (intern token)))
 
+(defun literate-elisp-get-tangle-option (in)
+  "Read tangle option from input stream.
+Argument IN: input stream."
+  (cl-getf (literate-elisp-read-header-arguments (literate-elisp-read-until-end-of-line in)) :tangle))
+
 (defmacro literate-elisp-fix-invalid-read-syntax (in &rest body)
   "Fix read error `invalid-read-syntax'.
 Argument IN: input stream.
@@ -173,46 +181,44 @@ Argument IN: input stream."
          (literate-elisp-read-after-sharpsign in))
         (t (funcall literate-elisp-read in))))))
 
-(defvar literate-elisp-begin-src-id "#+BEGIN_SRC elisp")
 (defun literate-elisp-read-after-sharpsign (in)
   "Read after #.
 Argument IN: input stream."
-        ;; 1. if it is not inside an elisp syntax
+  ;;     if it is not inside an elisp syntax
   (cond ((not literate-elisp-org-code-blocks-p)
-         ;; 1.1 check if it is `#+begin_src elisp'
+         ;; check if it is `#+begin_src elisp'
          (if (cl-loop for i from 1 below (length literate-elisp-begin-src-id)
-                   for c1 = (aref literate-elisp-begin-src-id i)
-                   for c2 = (literate-elisp-next in)
-                   thereis (not (char-equal c1 c2)))
-         ;; 1.2. if it is not, continue to use org syntax and ignore this line
+                      for c1 = (aref literate-elisp-begin-src-id i)
+                      for c2 = (literate-elisp-next in)
+                      thereis (not (char-equal c1 c2)))
+           ;; if it is not, continue to use org syntax and ignore this line
            (progn (literate-elisp-read-until-end-of-line in)
                   nil)
-         ;; 1.3 if it is, read source block header arguments for this code block
-           (let ((org-header-arguments (literate-elisp-read-header-arguments (literate-elisp-read-until-end-of-line in))))
-             (when literate-elisp-debug-p
-               (message "found org elisp src block, header-arguments:%s" org-header-arguments))
-             (cond ((literate-elisp-tangle-p (cl-getf org-header-arguments :tangle))
-         ;; 1.4 if it should be tangled, switch to elisp syntax context
-                    (when literate-elisp-debug-p
-                      (message "enter into a elisp code block"))
-                    (setf literate-elisp-org-code-blocks-p t)
-                    nil)))))
-         ;; 1.5 if it should not be tangled, continue to use org syntax and ignore this line
+           ;; if it is, read source block header arguments for this code block and check if it should be tangled.
+           (cond ((literate-elisp-tangle-p (literate-elisp-get-tangle-option in))
+                  ;; if it should be tangled, switch to elisp syntax context
+                  (when literate-elisp-debug-p
+                    (message "enter into a elisp code block"))
+                  (setf literate-elisp-org-code-blocks-p t)
+                  nil)
+                 (t
+                  ;; if it should not be tangled, continue to use org syntax and ignore this line
+                 nil))))
         (t
         ;; 2. if it is inside an elisp syntax
          (let ((c (literate-elisp-next in)))
            (when literate-elisp-debug-p
              (message "found #%c inside a org block" c))
            (cl-case c
-             ;; 2.1 check if it is ~#+~, which has only legal meaning when it is equal `#+end_src'
+             ;; check if it is ~#+~, which has only legal meaning when it is equal `#+end_src'
              (?\+
               (let ((line (literate-elisp-read-until-end-of-line in)))
                 (when literate-elisp-debug-p
                   (message "found org elisp end block:%s" line)))
-             ;; 2.2. if it is, then switch to org mode syntax.
+             ;; if it is, then switch to org mode syntax.
               (setf literate-elisp-org-code-blocks-p nil)
               nil)
-             ;; 2.3 if it is not, then use original elip reader to read the following stream
+             ;; if it is not, then use original elip reader to read the following stream
              (t (funcall literate-elisp-read in)))))))
 
 (defun literate-elisp-read-internal (&optional in)
@@ -250,7 +256,6 @@ Argument PATH: target file to load."
   (if command-line-args-left
     (literate-elisp-load (pop command-line-args-left))
     (error "No argument left for `literate-elisp-batch-load'")))
-
 
 (defun literate-elisp-load-file (file)
   "Load the Lisp file named FILE.
