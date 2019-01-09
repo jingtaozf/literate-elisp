@@ -37,7 +37,7 @@ In org mode, the emacs lisp codes surround by lines between ~#+begin_src elisp~ 
 (see [[https://orgmode.org/manual/Literal-examples.html][org manual]]).
 
 #+BEGIN_EXAMPLE
-   ,#+BEGIN_SRC elisp :tangle no
+   ,#+BEGIN_SRC elisp :load no
    (message "this is a test.~%")
    ,#+END_SRC
 #+END_EXAMPLE
@@ -178,13 +178,13 @@ Argument IN: input stream."
     (literate-elisp-next in)))
 #+END_SRC
 ** handle org mode syntax
-*** code block header argument ~tangle~
+*** code block header argument ~load~
 There are a lot of different elisp codes occur in one org file, some for function implementation,
-some for demo, and some for test, so an [[https://orgmode.org/manual/Structure-of-code-blocks.html][org code block]] [[https://orgmode.org/manual/Code-block-specific-header-arguments.html#Code-block-specific-header-arguments][header argument]] ~tangle~ to decide to
+some for demo, and some for test, so an [[https://orgmode.org/manual/Structure-of-code-blocks.html][org code block]] [[https://orgmode.org/manual/Code-block-specific-header-arguments.html#Code-block-specific-header-arguments][header argument]] ~load~ to decide to
 read them or not should define,and it has two meanings:
 - yes \\
   It means that current code block should load normally, 
-  it is the default mode when the header argument ~tangle~ is not provided.
+  it is the default mode when the header argument ~load~ is not provided.
 - no \\
   It means that current code block should ignore by elisp reader.
 - test \\
@@ -195,8 +195,8 @@ read them or not should define,and it has two meanings:
 
 Now let's implement above rule.
 #+BEGIN_SRC elisp
-(defun literate-elisp-tangle-p (flag)
-  "Tangle current elisp code block or not.
+(defun literate-elisp-load-p (flag)
+  "Load current elisp code block or not.
 Argument FLAG: flag symbol."
   (cl-case flag
     ((yes nil) t)
@@ -215,12 +215,12 @@ Argument ARGUMENTS: a string to hold the arguments."
         collect (intern token)))
 #+END_SRC
 
-Let's define a convenient function to get tangle flag from the input stream. 
+Let's define a convenient function to get load flag from the input stream. 
 #+BEGIN_SRC elisp
-(defun literate-elisp-get-tangle-option (in)
-  "Read tangle option from input stream.
+(defun literate-elisp-get-load-option (in)
+  "Read load option from input stream.
 Argument IN: input stream."
-  (cl-getf (literate-elisp-read-header-arguments (literate-elisp-read-until-end-of-line in)) :tangle))
+  (cl-getf (literate-elisp-read-header-arguments (literate-elisp-read-until-end-of-line in)) :load))
 #+END_SRC
 
 
@@ -319,15 +319,15 @@ Argument IN: input stream."
            ;; if it is not, continue to use org syntax and ignore this line
            (progn (literate-elisp-read-until-end-of-line in)
                   nil)
-           ;; if it is, read source block header arguments for this code block and check if it should be tangled.
-           (cond ((literate-elisp-tangle-p (literate-elisp-get-tangle-option in))
-                  ;; if it should be tangled, switch to elisp syntax context
+           ;; if it is, read source block header arguments for this code block and check if it should be loaded.
+           (cond ((literate-elisp-load-p (literate-elisp-get-load-option in))
+                  ;; if it should be loaded, switch to elisp syntax context
                   (when literate-elisp-debug-p
                     (message "enter into a elisp code block"))
                   (setf literate-elisp-org-code-blocks-p t)
                   nil)
                  (t
-                  ;; if it should not be tangled, continue to use org syntax and ignore this line
+                  ;; if it should not be loaded, continue to use org syntax and ignore this line
                  nil))))
         (t
         ;; 2. if it is inside an elisp syntax
@@ -482,7 +482,7 @@ Now we can tangle the elisp code blocks with the following codes.
 Argument FILE: target file"
   (let* ((source-buffer (find-file-noselect file))
          (target-buffer (find-file-noselect el-file))
-         (org-path-name (concat (pathname-name file) "." (pathname-type file)))
+         (org-path-name (concat (file-name-base file) "." (file-name-extension file)))
          (literate-elisp-read 'literate-elisp-tangle-reader)
          (literate-elisp-test-p test-p)
          (literate-elisp-org-code-blocks-p nil))
@@ -514,7 +514,7 @@ Argument FILE: target file"
 
 And when a new version of [[./literate-elisp.el]] can release from this file, 
 the following code should execute.
-#+BEGIN_SRC elisp :tangle no
+#+BEGIN_SRC elisp :load no
 (literate-elisp-tangle
  "literate-elisp.org"
  :header ";;; literate-elisp.el --- literate program to write elisp codes in org mode  -*- lexical-binding: t; -*-
@@ -553,7 +553,7 @@ the following code should execute.
 The head and tail lines require by [[https://github.com/melpa/melpa/blob/master/CONTRIBUTING.org][MELPA]] repository. 
 
 Now let's check the elisp file to meet the requirement of [[https://github.com/melpa/melpa/blob/master/CONTRIBUTING.org][MELPA]].
-#+BEGIN_SRC elisp :tangle no
+#+BEGIN_SRC elisp :load no
 (with-current-buffer (find-file "literate-elisp.el")
   (checkdoc)
   (package-lint-current-buffer))
@@ -569,21 +569,21 @@ every time there is a new git change.
 label:test-empty-code-block
 If one code block is empty, we will use emacs original ~read~ function, which will read ~#+end_src~
 and signal an error, let's test whether ~literate-elisp~ can read it gracefully.
-#+BEGIN_SRC elisp :tangle test
+#+BEGIN_SRC elisp :load test
  
 #+END_SRC
 
-#+BEGIN_SRC elisp :tangle test
+#+BEGIN_SRC elisp :load test
 ;; This is a comment line to test empty code block.
 #+END_SRC
 *** test code block with prefix space.
 Some code block have white spaces before ~#+begin_src elisp~, let's test whether ~literate-elisp~ can read it normally.
-  #+BEGIN_SRC elisp :tangle test
+  #+BEGIN_SRC elisp :load test
 (defvar literate-elisp-a-test-variable 10)
   #+END_SRC
   
 Let's write a test case for above code block.
-#+BEGIN_SRC elisp :tangle test
+#+BEGIN_SRC elisp :load test
 (ert-deftest literate-elisp-read-code-block-with-prefix-space ()
   "A spec of code block with prefix space."
   (should (equal literate-elisp-a-test-variable 10)))
@@ -591,12 +591,12 @@ Let's write a test case for above code block.
 
 *** test literate-elisp-read-header-arguments
 label:test-literate-elisp-read-header-arguments
-#+BEGIN_SRC elisp :tangle test
+#+BEGIN_SRC elisp :load test
 (ert-deftest literate-elisp-read-header-arguments ()
   "A spec of function to read org header-arguments."
-  (should (equal (literate-elisp-read-header-arguments " :tangle yes") '(:tangle yes)))
-  (should (equal (literate-elisp-read-header-arguments " :tangle no  ") '(:tangle no)))
-  (should (equal (literate-elisp-read-header-arguments ":tangle yes") '(:tangle yes))))
+  (should (equal (literate-elisp-read-header-arguments " :load yes") '(:load yes)))
+  (should (equal (literate-elisp-read-header-arguments " :load no  ") '(:load no)))
+  (should (equal (literate-elisp-read-header-arguments ":load yes") '(:load yes))))
 #+END_SRC
 
 * References

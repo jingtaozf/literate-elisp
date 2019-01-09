@@ -7,7 +7,7 @@
 ;; Version: 0.1
 ;; Keywords: lisp docs extensions tools
 ;; URL: https://github.com/jingtaozf/literate-elisp
-;; Package-Requires: ((cl-lib "0.6") (emacs "24"))
+;; Package-Requires: ((cl-lib "0.6") (emacs "24.3"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -111,8 +111,8 @@ Argument IN: input stream."
 
 (defvar literate-elisp-test-p nil)
 
-(defun literate-elisp-tangle-p (flag)
-  "Tangle current elisp code block or not.
+(defun literate-elisp-load-p (flag)
+  "Load current elisp code block or not.
 Argument FLAG: flag symbol."
   (cl-case flag
     ((yes nil) t)
@@ -126,10 +126,10 @@ Argument ARGUMENTS: a string to hold the arguments."
   (cl-loop for token in (split-string arguments)
         collect (intern token)))
 
-(defun literate-elisp-get-tangle-option (in)
-  "Read tangle option from input stream.
+(defun literate-elisp-get-load-option (in)
+  "Read load option from input stream.
 Argument IN: input stream."
-  (cl-getf (literate-elisp-read-header-arguments (literate-elisp-read-until-end-of-line in)) :tangle))
+  (cl-getf (literate-elisp-read-header-arguments (literate-elisp-read-until-end-of-line in)) :load))
 
 (defmacro literate-elisp-fix-invalid-read-syntax (in &rest body)
   "Fix read error `invalid-read-syntax'.
@@ -194,15 +194,15 @@ Argument IN: input stream."
            ;; if it is not, continue to use org syntax and ignore this line
            (progn (literate-elisp-read-until-end-of-line in)
                   nil)
-           ;; if it is, read source block header arguments for this code block and check if it should be tangled.
-           (cond ((literate-elisp-tangle-p (literate-elisp-get-tangle-option in))
-                  ;; if it should be tangled, switch to elisp syntax context
+           ;; if it is, read source block header arguments for this code block and check if it should be loaded.
+           (cond ((literate-elisp-load-p (literate-elisp-get-load-option in))
+                  ;; if it should be loaded, switch to elisp syntax context
                   (when literate-elisp-debug-p
                     (message "enter into a elisp code block"))
                   (setf literate-elisp-org-code-blocks-p t)
                   nil)
                  (t
-                  ;; if it should not be tangled, continue to use org syntax and ignore this line
+                  ;; if it should not be loaded, continue to use org syntax and ignore this line
                  nil))))
         (t
         ;; 2. if it is inside an elisp syntax
@@ -313,7 +313,7 @@ Arguemnt BUF: source buffer."
 Argument FILE: target file"
   (let* ((source-buffer (find-file-noselect file))
          (target-buffer (find-file-noselect el-file))
-         (org-path-name (concat (pathname-name file) "." (pathname-type file)))
+         (org-path-name (concat (file-name-base file) "." (file-name-extension file)))
          (literate-elisp-read 'literate-elisp-tangle-reader)
          (literate-elisp-test-p test-p)
          (literate-elisp-org-code-blocks-p nil))

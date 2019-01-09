@@ -39,14 +39,14 @@ surrounded by ~#+begin_src lisp~ and ~#+end_src~ in an org file directly.
 
 For example, if you have an org file and it contains such elisp code block:
 #+BEGIN_EXAMPLE
-   ,#+BEGIN_SRC elisp :tangle yes
+   ,#+BEGIN_SRC elisp :load yes
    (defun test ()
     (message "this is a test from org file.~%"))
    ,#+END_SRC
 #+END_EXAMPLE
 
 Then you can load this org file like this:
-#+BEGIN_SRC elisp :tangle no
+#+BEGIN_SRC elisp :load no
 (load "~/projects/literate-elisp/literate-elisp.el")
 (literate-elisp-load "test.org")
 #+END_SRC
@@ -75,19 +75,19 @@ This library contains the following files:
 * Preparation
 ** install Polymode in Emacs
 The org file can open as [[https://polymode.github.io/][polymode]],the following emacs lisp scripts should add in .emacs
-#+BEGIN_SRC elisp :tangle no
+#+BEGIN_SRC elisp :load no
 (use-package poly-org
     :ensure t)
 #+END_SRC
 ** install literate-elisp.el
-#+BEGIN_SRC elisp :tangle no
+#+BEGIN_SRC elisp :load no
 (load "~/projects/literate-elisp/literate-elisp.el")
 #+END_SRC
 * load this org file 
 
 This org file can load by elisp function ~literate-elisp-load~ directly and all elisp code blocks in this org file
 can load directly if such code block should load directly according to its code block options.
-#+BEGIN_SRC elisp :tangle no
+#+BEGIN_SRC elisp :load no
 (literate-elisp-load "readme.org")
 #+END_SRC
 * demo routines
@@ -128,7 +128,7 @@ Now ~aif~ is easy to finish.
 #+END_SRC
 
 You can use it like this
-#+BEGIN_SRC elisp :tangle no
+#+BEGIN_SRC elisp :load no
 (aif (and (y-or-n-p "Try it")
             10)
     (message "it is %s" it))
@@ -147,7 +147,7 @@ For example, I can write elisp configurations directly in this file:
 #+END_SRC
 ** load this org file in .emacs
 Then to load routines and configurations in this org file, I add the following codes in my ~.emacs~
-#+BEGIN_SRC elisp :tangle no
+#+BEGIN_SRC elisp :load no
 (load "~/projects/literate-elisp/literate-elisp.el")
 (literate-elisp-load "~/projects/literate-elisp/readme.org")
 #+END_SRC
@@ -157,13 +157,13 @@ We use [[https://www.gnu.org/software/emacs/manual/html_node/ert/Introduction.ht
 Web service [[https://travis-ci.com/jingtaozf/literate-lisp][travis ci]] will load config file [[./.travis.yml]] to run these tests automatically
 every time there is a new git change.
 ** test macro aif
-#+BEGIN_SRC elisp :tangle test
+#+BEGIN_SRC elisp :load test
 (ert-deftest literate-demo-aif ()
   "A spec of macro aif."
   (should (equal (aif 10 it 9) 10)))
 #+END_SRC
 ** test org mode configuration
-#+BEGIN_SRC elisp :tangle test
+#+BEGIN_SRC elisp :load test
 (ert-deftest literate-demo-org-mode ()
   "A spec of macro aif."
   (should (equal (cl-loop for (x . y) in auto-mode-alist
