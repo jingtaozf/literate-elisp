@@ -14,7 +14,7 @@
 - [[#tutorial][Tutorial]]
   - [[#install-polymode-in-emacs][install Polymode in Emacs]]
   - [[#install-literate-elispel][install literate-elisp.el]]
-- [[#load-this-org-file][load this org file]]
+  - [[#load-an-org-file][load an org file]]
   - [[#header-argument-load][header argument ~load~]]
 - [[#demo-routines][demo routines]]
   - [[#a-demo-macro][a demo macro]]
@@ -84,10 +84,10 @@ The org file can open as [[https://polymode.github.io/][polymode]],the following
 #+BEGIN_SRC elisp :load no
 (load "~/projects/literate-elisp/literate-elisp.el")
 #+END_SRC
-* load this org file 
+** load an org file 
 
-This org file can load by elisp function ~literate-elisp-load~ directly and all elisp code blocks in this org file
-can load directly if such code block should load directly according to its code block options.
+To load an org file, we can use function ~literate-elisp-load~.
+For example, This org file can load directly with the following code.
 #+BEGIN_SRC elisp :load no
 (literate-elisp-load "readme.org")
 #+END_SRC
