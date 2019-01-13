@@ -35,7 +35,7 @@ The implementation details of [[https://github.com/jingtaozf/literate-elisp][lit
 
 This library export an elisp function ~literate-elisp-load~ 
 and this function can load elisp codes in all elisp code blocks 
-surrounded by ~#+begin_src lisp~ and ~#+end_src~ in an org file directly.
+surrounded by ~#+begin_src elisp~ and ~#+end_src~ in an org file directly.
 
 For example, if you have an org file and it contains such elisp code block:
 #+BEGIN_EXAMPLE
