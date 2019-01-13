@@ -1,6 +1,6 @@
 # -*- encoding:utf-8 Mode: POLY-ORG;  -*- --- 
 #+TITLE:  elisp literate library
-#+SubTitle: a literate programming tool to write emacs lisp codes in org mode.
+#+SubTitle: a literate programming tool to write Emacs lisp codes in org mode.
 #+OPTIONS: toc:2
 #+Startup: noindent
 #+LATEX_HEADER: % copied from lstlang1.sty, to add new language support to elisp.
@@ -22,18 +22,18 @@
 
 * Introduction
 
-An emacs library or configuration file can write in org mode then tangle to an elisp file later,
+An Emacs library or configuration file can write in org mode then tangle to an elisp file later,
 here is one example: [[https://github.com/larstvei/dot-emacs][Emacs configurations written in Org mode]] .
 
-But What if I want to write a library or a configuration file in org file and load it to emacs directly?
+But What if I want to write a library or a configuration file in org file and load it to Emacs directly?
 If it can, then we will have an uniform development environment without keeping multiple copies
 of codes. Furthermore, we can jump to the elisp definition in an org file directly when required.
 That will be a convenient way for our daily development.
 
-So is this library, which extends the emacs [[https://www.gnu.org/software/emacs/manual/html_node/elisp/How-Programs-Do-Loading.html#How-Programs-Do-Loading][load]] mechanism so emacs can load org files as lisp source files directly.
+So is this library, which extends the Emacs [[https://www.gnu.org/software/emacs/manual/html_node/elisp/How-Programs-Do-Loading.html#How-Programs-Do-Loading][load]] mechanism so Emacs can load org files as lisp source files directly.
 
 * How to do it?
-In org mode, the emacs lisp codes surround by lines between ~#+begin_src elisp~ and ~#+end_src~ 
+In org mode, the Emacs lisp codes surround by lines between ~#+begin_src elisp~ and ~#+end_src~ 
 (see [[https://orgmode.org/manual/Literal-examples.html][org manual]]).
 
 #+BEGIN_EXAMPLE
@@ -42,12 +42,12 @@ In org mode, the emacs lisp codes surround by lines between ~#+begin_src elisp~ 
    ,#+END_SRC
 #+END_EXAMPLE
 
-So to let emacs lisp can read an org file directly, all lines out of surrounding
+So to let Emacs lisp can read an org file directly, all lines out of surrounding
 by ~#+begin_src elisp~ and ~#+end_src~ should mean nothing, 
 and even codes surrounding by them should mean nothing 
 if the [[https://orgmode.org/manual/Code-block-specific-header-arguments.html#Code-block-specific-header-arguments][header arguments]] in a code block request such behavior.
 
-Here is a trick, a new emacs lisp reader function get implemented
+Here is a trick, a new Emacs lisp reader function get implemented
 (by binding elisp variable [[https://www.gnu.org/software/emacs/manual/html_node/elisp/How-Programs-Do-Loading.html][load-read-function]]) to replace original ~read~ function when
 using elisp function ~load~ to load a org file.
 
@@ -55,12 +55,12 @@ The new reader will make elisp reader enter into org mode syntax,
 which means it will ignore all lines until it meet ~#+BEGIN_SRC elisp~.
 
 When ~#+begign_src elisp~ occur,  [[https://orgmode.org/manual/Code-block-specific-header-arguments.html#Code-block-specific-header-arguments][header arguments]] for this code block will give us
-a chance to switch back to normal emacs lisp reader or not.
+a chance to switch back to normal Emacs lisp reader or not.
 
-And if it switch back to normal emacs lisp reader, the end line ~#+END_SRC~ should mean the
+And if it switch back to normal Emacs lisp reader, the end line ~#+END_SRC~ should mean the
 end of current code block, if it occur, then the reader will switch back to org mode syntax.
 if not, then the reader will continue to read subsequent stream 
-as like the original emacs lisp reader.
+as like the original Emacs lisp reader.
 
 * Implementation
 ** Preparation
@@ -265,7 +265,7 @@ Argument IN: input stream."
 #+END_SRC
 
 *** alternative elisp read function
-When tangling org file, we want to tangle elisp codes without changing them(but emacs original ~read~ will),
+When tangling org file, we want to tangle elisp codes without changing them(but Emacs original ~read~ will),
 so let's define a variable to hold the actual elisp reader used by us 
 then it can be changed when tangling org files(see ref:literate-elisp-tangle-reader).
 #+BEGIN_SRC elisp
@@ -367,7 +367,7 @@ Argument IN: input stream."
 #+END_SRC
 
 label:literate-elisp-read
-Now we define the literate read function which will bind to emacs variable [[https://www.gnu.org/software/emacs/manual/html_node/elisp/How-Programs-Do-Loading.html][load-read-function]].
+Now we define the literate read function which will bind to Emacs variable [[https://www.gnu.org/software/emacs/manual/html_node/elisp/How-Programs-Do-Loading.html][load-read-function]].
 #+BEGIN_SRC elisp
 (defun literate-elisp-read (&optional in)
   "Literate read function.
@@ -399,7 +399,7 @@ If you want to literate load file in batch mode, here it is:
     (error "No argument left for `literate-elisp-batch-load'")))
 #+END_SRC
 
-*** an interactive command to load a literate org file from emacs
+*** an interactive command to load a literate org file from Emacs
 #+BEGIN_SRC elisp
 (defun literate-elisp-load-file (file)
   "Load the Lisp file named FILE.
@@ -442,10 +442,10 @@ Arguemnt LOAD: load the file after compiling."
 #+END_SRC
 
 ** function to tangle org file to elisp file
-To build an emacs lisp file from an org file without depending on ~literate-elisp~ library,
-we need tangle an org file to an emacs lisp file(.el).
+To build an Emacs lisp file from an org file without depending on ~literate-elisp~ library,
+we need tangle an org file to an Emacs lisp file(.el).
 
-Firstly, when tangle elisp codes, we don't want to use original emacs ~read~ function to read them because it will ignore comment lines
+Firstly, when tangle elisp codes, we don't want to use original Emacs ~read~ function to read them because it will ignore comment lines
 and it's hard for us to revert them back to a pretty print code, so we define a new reader function and bind it to 
 variable ~literate-elisp-read~.
 
@@ -526,7 +526,7 @@ the following code should execute.
 ;; Version: 0.1
 ;; Keywords: lisp docs extensions tools
 ;; URL: https://github.com/jingtaozf/literate-elisp
-;; Package-Requires: ((cl-lib \"0.6\") (emacs \"24\"))
+;; Package-Requires: ((cl-lib \"0.6\") (emacs \"24.3\"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -567,7 +567,7 @@ every time there is a new git change.
 ** test cases
 *** test the empty code block
 label:test-empty-code-block
-If one code block is empty, we will use emacs original ~read~ function, which will read ~#+end_src~
+If one code block is empty, we will use Emacs original ~read~ function, which will read ~#+end_src~
 and signal an error, let's test whether ~literate-elisp~ can read it gracefully.
 #+BEGIN_SRC elisp :load test
  

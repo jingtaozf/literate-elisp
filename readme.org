@@ -17,7 +17,7 @@
 - [[#load-this-org-file][load this org file]]
 - [[#demo-routines][demo routines]]
   - [[#a-demo-macro][a demo macro]]
-- [[#a-demo-emacs-configuration][a demo emacs configuration]]
+- [[#a-demo-emacs-configuration][a demo Emacs configuration]]
   - [[#a-demo-configuration][a demo configuration]]
   - [[#load-this-org-file-in-emacs][load this org file in .emacs]]
 - [[#test][Test]]
@@ -27,9 +27,9 @@
 - [[#copyright-and-license][Copyright and license]]
 
 * Introduction
-[[https://github.com/jingtaozf/literate-elisp][literate-elisp]] is an emacs lisp library to provide an easy way to use [[http://www.literateprogramming.com/][literal programming]] in Emacs lisp.
+[[https://github.com/jingtaozf/literate-elisp][literate-elisp]] is an Emacs lisp library to provide an easy way to use [[http://www.literateprogramming.com/][literal programming]] in Emacs lisp.
 
-It extends the emacs [[https://www.gnu.org/software/emacs/manual/html_node/elisp/How-Programs-Do-Loading.html#How-Programs-Do-Loading][load]] mechanism so emacs can load org files as lisp source files directly.
+It extends the Emacs [[https://www.gnu.org/software/emacs/manual/html_node/elisp/How-Programs-Do-Loading.html#How-Programs-Do-Loading][load]] mechanism so Emacs can load org files as lisp source files directly.
 
 The implementation details of [[https://github.com/jingtaozf/literate-elisp][literate-elisp]] is in file [[./literate-elisp.org]] ([[./literate-elisp.pdf][pdf version]]).
 
@@ -51,10 +51,10 @@ Then you can load this org file like this:
 (literate-elisp-load "test.org")
 #+END_SRC
 Now the elisp function ~test~ is ready to use, 
-and you can jump to the definition of ~test~ in the org file by using emacs library [[https://github.com/emacs-mirror/emacs/blob/master/lisp/emacs-lisp/find-func.el][find-func]] directly
+and you can jump to the definition of ~test~ in the org file by using Emacs library [[https://github.com/emacs-mirror/emacs/blob/master/lisp/emacs-lisp/find-func.el][find-func]] directly
 without tangling them to an elisp file(.el).
 
-You can also open an org file by [[https://polymode.github.io/][polymode]] when edit,which will switch elisp code block to emacs elisp mode.
+You can also open an org file by [[https://polymode.github.io/][polymode]] when edit,which will switch elisp code block to Emacs elisp mode.
 
 So you will have a perfect literate environment which can write elisp codes in an org file, and
 load it directly without tangling an org file to an elisp file.
@@ -74,7 +74,7 @@ This library contains the following files:
 
 * Preparation
 ** install Polymode in Emacs
-The org file can open as [[https://polymode.github.io/][polymode]],the following emacs lisp scripts should add in .emacs
+The org file can open as [[https://polymode.github.io/][polymode]],the following Emacs lisp scripts should add in .emacs
 #+BEGIN_SRC elisp :load no
 (use-package poly-org
     :ensure t)
@@ -136,8 +136,8 @@ You can use it like this
 After loading this org file by function ~literate-elisp-load~,
 you can use macro ~aif~ directly in your other elisp files.
 
-* a demo emacs configuration 
-Of course the one purpose of this library is to write emacs configuration directly in an org file. \\
+* a demo Emacs configuration 
+Of course the one purpose of this library is to write Emacs configuration directly in an org file. \\
 For example, I can write elisp configurations directly in this file:
   
 ** a demo configuration
