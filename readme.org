@@ -15,7 +15,7 @@
   - [[#install-polymode-in-emacs][install Polymode in Emacs]]
   - [[#install-literate-elispel][install literate-elisp.el]]
   - [[#load-an-org-file][load an org file]]
-  - [[#header-argument-load][header argument ~load~]]
+  - [[#a-new-org-header-argument-load][a new org header argument ~load~]]
 - [[#demo-routines][demo routines]]
   - [[#a-demo-macro][a demo macro]]
 - [[#a-demo-emacs-configuration][a demo Emacs configuration]]
@@ -96,7 +96,7 @@ For example, This org file can load directly with the following code.
 If you want to load an org file with a Emacs command, please press "Alt-X" and type ~literate-elisp-load-file~. 
 
 If you want to load an org file in batch mode, please use function ~literate-elisp-batch-load~. 
-** header argument ~load~
+** a new org header argument ~load~
 Please have a look of the section [[./literate-elisp.org#handle-org-mode-syntax][code block header argument load]] in [[./literate-elisp.org]].
 
 * demo routines
