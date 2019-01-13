@@ -11,10 +11,11 @@
 
 * Table of Contents                                                   :TOC:
 - [[#introduction][Introduction]]
-- [[#preparation][Preparation]]
+- [[#tutorial][Tutorial]]
   - [[#install-polymode-in-emacs][install Polymode in Emacs]]
   - [[#install-literate-elispel][install literate-elisp.el]]
 - [[#load-this-org-file][load this org file]]
+  - [[#header-argument-load][header argument ~load~]]
 - [[#demo-routines][demo routines]]
   - [[#a-demo-macro][a demo macro]]
 - [[#a-demo-emacs-configuration][a demo Emacs configuration]]
@@ -72,7 +73,7 @@ This library contains the following files:
 - [[./.travis.yml]] \\
   The config file used by Web service [[https://travis-ci.com/jingtaozf/literate-lisp][travis ci]] to test this library.
 
-* Preparation
+* Tutorial
 ** install Polymode in Emacs
 The org file can open as [[https://polymode.github.io/][polymode]],the following Emacs lisp scripts should add in .emacs
 #+BEGIN_SRC elisp :load no
@@ -90,6 +91,13 @@ can load directly if such code block should load directly according to its code 
 #+BEGIN_SRC elisp :load no
 (literate-elisp-load "readme.org")
 #+END_SRC
+
+If you want to load an org file with a Emacs command, please press "Alt-X" and type ~literate-elisp-load-file~. 
+
+If you want to load an org file in batch mode, please use function ~literate-elisp-batch-load~. 
+** header argument ~load~
+Please have a look of the section [[./literate-elisp.org#handle-org-mode-syntax][code block header argument load]] in [[./literate-elisp.org]].
+
 * demo routines
 ** a demo macro
 As a demo org file, we write a simple demo macro ~aif~ here.
