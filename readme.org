@@ -148,7 +148,7 @@ you can use macro ~aif~ directly in your other elisp files.
 
 * a demo Emacs configuration 
 Of course the one purpose of this library is to write Emacs configuration directly in an org file. \\
-For example, I can write elisp configurations directly in this file:
+Here we give a demo configuration and the way to load such org config file.
   
 ** a demo configuration
 ***  enable org mode for org files
