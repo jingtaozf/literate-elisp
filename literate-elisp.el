@@ -7,7 +7,7 @@
 ;; Version: 0.1
 ;; Keywords: lisp docs extensions tools
 ;; URL: https://github.com/jingtaozf/literate-elisp
-;; Package-Requires: ((cl-lib "0.6") (emacs "24.3"))
+;; Package-Requires: ((cl-lib "0.6") (emacs "24.4"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -154,7 +154,7 @@ Argument IN: input stream."
     ;; discard current character.
     (literate-elisp-next in)))
 
-(defvar literate-elisp-read 'read)
+(defvar literate-elisp-read (symbol-function 'read))
 
 (defun literate-elisp-read-datum (in)
   "Read and return a Lisp datum from the input stream.
@@ -286,6 +286,18 @@ Arguemnt LOAD: load the file after compiling."
     (unwind-protect
         (byte-compile-file file load)
       (fset 'read original-read))))
+
+(defun literate-elisp-find-library-name (orig-fun &rest args)
+  "An advice to make `find-library-name' can recognize org source file.
+Argument ORIG-FUN: original function of this advice.
+Arguemnt ARGS: the arguments to original advice function."
+
+  (when (string-match "\\(\\.org\\.el\\)" (car args))
+    (setf (car args) (replace-match ".org" t t (car args)))
+    (when literate-elisp-debug-p
+      (message "fix literate compiled file in find-library-name :%s" (car args))))
+  (apply orig-fun args))
+(advice-add 'find-library-name :around #'literate-elisp-find-library-name)
 
 (defun literate-elisp-tangle-reader (&optional buf)
   "Tangling codes in one code block.

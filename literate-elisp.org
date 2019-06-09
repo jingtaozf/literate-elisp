@@ -269,8 +269,14 @@ When tangling org file, we want to tangle elisp codes without changing them(but 
 so let's define a variable to hold the actual elisp reader used by us 
 then it can be changed when tangling org files(see ref:literate-elisp-tangle-reader).
 #+BEGIN_SRC elisp
-(defvar literate-elisp-read 'read)
+(defvar literate-elisp-read (symbol-function 'read))
 #+END_SRC
+We don't use the original symbol ~read~ in ~literate-elisp-read~ because sometimes function ~read~ can be changed by the following elisp code
+#+BEGIN_SRC elisp :load no
+(fset 'read (symbol-function 'literate-elisp-read-internal))
+#+END_SRC
+So we can ensure that ~literate-elisp-read~ will always use the original ~read~ function,which will not be altered when we want to byte compile
+the org file by function ~literate-elisp-byte-compile-file~.
 
 *** basic read routine for org mode syntax.
 It's time to implement the main routine to read literate org file.
@@ -411,11 +417,9 @@ Argument FILE: target file path."
 
 *** a function to byte compile a literate org file
 
-*This feature is under development and not work yet.*
-
 Currently(2018.12.16) Emacs [[https://github.com/emacs-mirror/emacs/blob/master/lisp/emacs-lisp/bytecomp.el][bytecomp]] library always use function ~read~ to read elisp forms,
 instead of the function specified by variable ~load-read-function~.so we modify the symbol function
-of read when byte compiling org file.
+of ~read~ when byte compiling org file.
 #+BEGIN_SRC elisp
 (defun literate-elisp-byte-compile-file (file &optional load)
   "Byte compile an org file.
@@ -439,6 +443,23 @@ Arguemnt LOAD: load the file after compiling."
     (unwind-protect
         (byte-compile-file file load)
       (fset 'read original-read))))
+#+END_SRC
+
+After byte compiling an literate org file, it will be compiled to a file with suffix ~.org.elc~,
+after loading such compiled file, Emacs will fail to find the variable or function definition because function ~find-library-name~
+don't treat org file as a source file, so we have to add an advice function to ~find-library-name~ to fix this issue. 
+#+BEGIN_SRC elisp
+(defun literate-elisp-find-library-name (orig-fun &rest args)
+  "An advice to make `find-library-name' can recognize org source file.
+Argument ORIG-FUN: original function of this advice.
+Arguemnt ARGS: the arguments to original advice function."
+
+  (when (string-match "\\(\\.org\\.el\\)" (car args))
+    (setf (car args) (replace-match ".org" t t (car args)))
+    (when literate-elisp-debug-p
+      (message "fix literate compiled file in find-library-name :%s" (car args))))
+  (apply orig-fun args))
+(advice-add 'find-library-name :around #'literate-elisp-find-library-name)
 #+END_SRC
 
 ** function to tangle org file to elisp file
@@ -526,7 +547,7 @@ the following code should execute.
 ;; Version: 0.1
 ;; Keywords: lisp docs extensions tools
 ;; URL: https://github.com/jingtaozf/literate-elisp
-;; Package-Requires: ((cl-lib \"0.6\") (emacs \"24.3\"))
+;; Package-Requires: ((cl-lib \"0.6\") (emacs \"24.4\"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
