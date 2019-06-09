@@ -70,12 +70,6 @@ We use common lisp macros in this library
 (require 'cl-lib)
 #+END_SRC
 
-And advice facility library.
-#+BEGIN_SRC elisp
-(require 'advice)
-#+END_SRC
-
-
 There is a debug variable to switch on/off the log messages for this library.
 #+BEGIN_SRC elisp
 (defvar literate-elisp-debug-p nil)

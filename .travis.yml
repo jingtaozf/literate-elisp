@@ -1,4 +1,5 @@
-language: generic
+sudo: false
+language: python
 
 os:
     - linux
@@ -6,23 +7,19 @@ os:
 # build matrix - test on different emacs versions
 env:
   matrix:
-    - EMACS=emacs24
-    - EMACS=emacs-snapshot
+    - EVM_EMACS=emacs-26.1-travis
 
-install:
+matrix:
+  include:
+    - env: EVM_EMACS=emacs-24.4-travis
+    - env: EVM_EMACS=emacs-24.5-travis
+    - env: EVM_EMACS=emacs-25.1-travis
+    - env: EVM_EMACS=emacs-25.2-travis
+    - env: EVM_EMACS=emacs-25.3-travis
 
-  # linux
-  - if [[ "$TRAVIS_OS_NAME-$EMACS" == "linux-emacs24" ]]; then
-        sudo add-apt-repository -y ppa:cassou/emacs &&
-        sudo apt-get update -qq &&
-        sudo apt-get install -qq emacs24 emacs24-el;
-    fi
-  - if [[ "$TRAVIS_OS_NAME-$EMACS" == "linux-emacs-snapshot" ]]; then
-        sudo add-apt-repository -y ppa:ubuntu-elisp/ppa &&
-        sudo apt-get update -qq &&
-        sudo apt-get -qq -f install &&
-        sudo apt-get install -qq emacs-snapshot;
-    fi
+before_install:
+  - curl -fsSkL https://gist.github.com/rejeep/ebcd57c3af83b049833b/raw > x.sh && source ./x.sh
+  - evm install $EVM_EMACS --use --skip
 
 script:
   - emacs -Q --batch -L .
