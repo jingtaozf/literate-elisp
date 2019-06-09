@@ -72,7 +72,7 @@ We use common lisp macros in this library
 
 And advice facility library.
 #+BEGIN_SRC elisp
-(require 'nadvice)
+(require 'advice)
 #+END_SRC
 
 

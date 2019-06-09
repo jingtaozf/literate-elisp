@@ -37,7 +37,7 @@
 
 (require 'cl-lib)
 
-(require 'nadvice)
+(require 'advice)
 
 (defvar literate-elisp-debug-p nil)
 
