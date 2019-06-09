@@ -37,8 +37,6 @@
 
 (require 'cl-lib)
 
-(require 'advice)
-
 (defvar literate-elisp-debug-p nil)
 
 (defvar literate-elisp-org-code-blocks-p nil)
