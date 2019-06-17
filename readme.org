@@ -16,6 +16,7 @@
   - [[#install-polymode-in-emacs][install Polymode in Emacs]]
   - [[#install-literate-elispel][install literate-elisp.el]]
   - [[#load-an-org-file][load an org file]]
+  - [[#byte-compile-an-org-file][byte compile an org file]]
   - [[#a-new-code-block-header-argument-load][a new code block header argument ~load~]]
 - [[#demo-routines][demo routines]]
   - [[#a-demo-macro][a demo macro]]
@@ -87,7 +88,7 @@ The org file can open as [[https://polymode.github.io/][polymode]],the following
 #+END_SRC
 ** load an org file 
 
-To load an org file, we can use function ~literate-elisp-load~.
+To load an org file, we can use Emacs interactive command ~literate-elisp-load~.
 
 For example, This org file can load directly with the following code.
 #+BEGIN_SRC elisp :load no
@@ -97,8 +98,25 @@ For example, This org file can load directly with the following code.
 If you want to load an org file with a Emacs command, please press "Alt-X" and type ~literate-elisp-load-file~. 
 
 If you want to load an org file in batch mode, please use function ~literate-elisp-batch-load~. 
+** byte compile an org file
+To byte compile an org file to an ~elc~ file, we can use Emacs interactive command ~literate-elisp-byte-compile-file~.
+For example, This org file can be compiled with the following code.
+#+BEGIN_SRC elisp :load no
+(literate-elisp-byte-compile-file "readme.org")
+#+END_SRC
+Now the target file ~readme.org.elc~ is ready to use.
+
 ** a new code block header argument ~load~
-Please have a look of the section [[./literate-elisp.org#handle-org-mode-syntax][code block header argument load]] in [[./literate-elisp.org]].
+There are a lot of different elisp codes occur in one org file, some for function implementation,
+some for demo, and some for test, so an [[https://orgmode.org/manual/Structure-of-code-blocks.html][org code block]] [[https://orgmode.org/manual/Code-block-specific-header-arguments.html#Code-block-specific-header-arguments][header argument]] ~load~ to decide to
+read them or not should define,and it has two meanings:
+- yes \\
+  It means that current code block should load normally, 
+  it is the default mode when the header argument ~load~ is not provided.
+- no \\
+  It means that current code block should ignore by elisp reader.
+- test \\
+  It means that current code block should load only when variable ~literate-elisp-test-p~ is true.
 
 * demo routines
 ** a demo macro
