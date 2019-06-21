@@ -135,17 +135,20 @@ Argument IN: input stream."
   "Fix read error `invalid-read-syntax'.
 Argument IN: input stream.
 Argument BODY: body codes."
-  `(condition-case ex
-        ,@body
-      (invalid-read-syntax
-       (when literate-elisp-debug-p
-         (message "reach invalid read syntax %s at position %s"
-                  ex (literate-elisp-position in)))
-       (if (equal "#" (second ex))
-         ;; maybe this is #+end_src
-         (literate-elisp-read-after-sharpsign in)
-         ;; re-throw this signal because we don't know how to handle it.
-         (signal (car ex) (cdr err))))))
+  (declare (indent 1)
+           (debug ([&or bufferp markerp symbolp stringp "t"] body)))
+  (let ((ex (gensym)))
+    `(condition-case ,ex
+         ,@body
+       (invalid-read-syntax
+        (when literate-elisp-debug-p
+          (message "reach invalid read syntax %s at position %s"
+                   ,ex (literate-elisp-position in)))
+        (if (equal "#" (second ,ex))
+            ;; maybe this is #+end_src
+            (literate-elisp-read-after-sharpsign in)
+          ;; re-throw this signal because we don't know how to handle it.
+          (signal (car ,ex) (cdr ,ex)))))))
 
 (defun literate-elisp-ignore-white-space (in)
   "Skip white space characters.
