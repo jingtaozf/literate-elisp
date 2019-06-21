@@ -56,7 +56,7 @@ using elisp function ~load~ to load a org file.
 The new reader will make elisp reader enter into org mode syntax, 
 which means it will ignore all lines until it meet ~#+BEGIN_SRC elisp~.
 
-When ~#+begign_src elisp~ occur,  [[https://orgmode.org/manual/Code-block-specific-header-arguments.html#Code-block-specific-header-arguments][header arguments]] for this code block will give us
+When ~#+begin_src elisp~ occur,  [[https://orgmode.org/manual/Code-block-specific-header-arguments.html#Code-block-specific-header-arguments][header arguments]] for this code block will give us
 a chance to switch back to normal Emacs lisp reader or not.
 
 And if it switch back to normal Emacs lisp reader, the end line ~#+END_SRC~ should mean the
@@ -153,7 +153,7 @@ Argument IN: input stream."
 when read org file character by character, if current line determines as an org syntax,
 then the whole line should ignore, so there should exist such a function.
 
-Before then, let's implement an abstract method to ~read characters repeatly while a predication meet~. 
+Before then, let's implement an abstract method to ~read characters repeatly while a predicate is met~. 
 
 The ignored string return from this function 
 because it may be useful sometimes,for example when reading [[https://orgmode.org/manual/Code-block-specific-header-arguments.html#Code-block-specific-header-arguments][header arguments]] after ~#+begin_src elisp~.
