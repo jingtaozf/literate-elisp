@@ -278,34 +278,35 @@ Code that would otherwise be written this way:
 #+END_EXAMPLE
 …can instead be written like this:
 #+BEGIN_EXAMPLE elisp
-(literate-elisp-src-ids-loop literate-elisp-begin-src-id
+(literate-elisp-src-ids-loop literate-elisp-begin-src-id BUFFER
   (string-equal id string-var))
 #+END_EXAMPLE
+…with ~BUFFER~ replaced with the current source buffer (or nil, to use the current buffer).
 If ~literate-elisp-begin-src-id~ is a single string, the two examples will work identically; when it is a list, then the second example will loop over the macro body, with ‘id’ bound to each element of ~literate-elisp-begin-src-id~, and will return t if any iteration returns t.
 #+BEGIN_SRC elisp
-(defmacro literate-elisp-src-ids-loop (id-or-ids &rest body)
+(defmacro literate-elisp-src-ids-loop (id-or-ids buf &rest body)
   "Iterate BODY with each value of ID-OR-IDS bound to `id'.
-ID-OR-IDS can be a single value or a list.
+ID-OR-IDS can be a single value or a list. BUF is the relevant
+source buffer. If nil, BUF will default to the current buffer.
 
 If any iteration returns non-nil, iteration stops and the non-nil
 value is returned. Otherwise, returns nil.
 
 Only a successful iteration (one which returns non-nil) will be
-able to move point."
-  (declare (indent 1)
+able to move point in the source buffer."
+  (declare (indent 2)
            (debug (form body)))
   (let ((ids (cl-gensym))
         (start (cl-gensym))
-        (result (cl-gensym)))
+        (buffer (cl-gensym)))
     `(cl-loop with ,ids = (if (listp ,id-or-ids) ,id-or-ids (list ,id-or-ids))
-              and ,start = (point)
-              and ,result
+              with ,buffer = (or ,buf (current-buffer))
+              with ,start = (with-current-buffer ,buffer (point))
               for id in ,ids
-              do (setq ,result (progn ,@body))
-              if ,result
-                return ,result
+              if (progn ,@body)
+                return it
               else
-                do (goto-char ,start))))
+                do (with-current-buffer ,buffer (goto-char ,start)))))
 #+END_SRC
 
 *** alternative elisp read function
@@ -362,7 +363,7 @@ Argument IN: input stream."
   ;;     if it is not inside an elisp syntax
   (cond ((not literate-elisp-org-code-blocks-p)
          ;; check if it is `#+begin_src elisp'
-         (if (literate-elisp-src-ids-loop literate-elisp-begin-src-id
+         (if (literate-elisp-src-ids-loop literate-elisp-begin-src-id in
                (cl-loop for i from 1 below (length id)
                         for c1 = (aref id i)
                         for c2 = (literate-elisp-next in)
@@ -390,7 +391,7 @@ Argument IN: input stream."
              ;; check if it is ~#+~, which has only legal meaning when it is equal `#+end_src'
              (?\+
               (let ((line (literate-elisp-read-until-end-of-line in)))
-                (if (literate-elisp-src-ids-loop literate-elisp-end-src-id
+                (if (literate-elisp-src-ids-loop literate-elisp-end-src-id in
                       (string-prefix-p (substring id 2) line t))
                     (progn
                       (when literate-elisp-debug-p
@@ -536,7 +537,7 @@ Argument BUF: source buffer."
 
       (cl-loop for line = (buffer-substring-no-properties (line-beginning-position) (line-end-position))
                until (or (eobp)
-                         (literate-elisp-src-ids-loop literate-elisp-end-src-id
+                         (literate-elisp-src-ids-loop literate-elisp-end-src-id buf
                            (string-equal (string-trim (downcase line)) (downcase id))))
                do (loop for c across line
                         do (write-char c))
