@@ -138,7 +138,7 @@ Argument IN: input stream.
 Argument BODY: body codes."
   (declare (indent 1)
            (debug ([&or bufferp markerp symbolp stringp "t"] body)))
-  (let ((ex (gensym)))
+  (let ((ex (cl-gensym)))
     `(condition-case ,ex
          ,@body
        (invalid-read-syntax
@@ -170,10 +170,10 @@ Whichever iteration moves point the farthest will determine where
 point will be at the end of the loop."
   (declare (indent 1)
            (debug (form body)))
-  (let ((ids (gensym))
-        (start (gensym))
-        (end (gensym))
-        (result (gensym)))
+  (let ((ids (cl-gensym))
+        (start (cl-gensym))
+        (end (cl-gensym))
+        (result (cl-gensym)))
     `(cl-loop with ,ids = (if (listp ,id-or-ids) ,id-or-ids (list ,id-or-ids))
               and ,start = (point)
               and ,end = (point)
