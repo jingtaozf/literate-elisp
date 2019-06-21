@@ -213,23 +213,25 @@ Argument IN: input stream."
   ;;     if it is not inside an elisp syntax
   (cond ((not literate-elisp-org-code-blocks-p)
          ;; check if it is `#+begin_src elisp'
-         (if (cl-loop for i from 1 below (length literate-elisp-begin-src-id)
-                      for c1 = (aref literate-elisp-begin-src-id i)
-                      for c2 = (literate-elisp-next in)
-                      thereis (not (char-equal c1 c2)))
+         (if (literate-elisp-src-ids-loop literate-elisp-begin-src-id
+               (cl-loop for i from 1 below (length id)
+                        for c1 = (aref id i)
+                        for c2 = (literate-elisp-next in)
+                        with case-fold-search = t
+                        always (char-equal c1 c2)))
+             ;; if it is, read source block header arguments for this code block and check if it should be loaded.
+             (cond ((literate-elisp-load-p (literate-elisp-get-load-option in))
+                    ;; if it should be loaded, switch to elisp syntax context
+                    (when literate-elisp-debug-p
+                      (message "enter into an elisp code block"))
+                    (setf literate-elisp-org-code-blocks-p t)
+                    nil)
+                   (t
+                    ;; if it should not be loaded, continue to use org syntax and ignore this line
+                    nil))
            ;; if it is not, continue to use org syntax and ignore this line
-           (progn (literate-elisp-read-until-end-of-line in)
-                  nil)
-           ;; if it is, read source block header arguments for this code block and check if it should be loaded.
-           (cond ((literate-elisp-load-p (literate-elisp-get-load-option in))
-                  ;; if it should be loaded, switch to elisp syntax context
-                  (when literate-elisp-debug-p
-                    (message "enter into a elisp code block"))
-                  (setf literate-elisp-org-code-blocks-p t)
-                  nil)
-                 (t
-                  ;; if it should not be loaded, continue to use org syntax and ignore this line
-                 nil))))
+           (literate-elisp-read-until-end-of-line in)
+           nil))
         (t
         ;; 2. if it is inside an elisp syntax
          (let ((c (literate-elisp-next in)))
