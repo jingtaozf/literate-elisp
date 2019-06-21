@@ -158,30 +158,28 @@ Argument IN: input stream."
     (literate-elisp-next in)))
 
 (defmacro literate-elisp-src-ids-loop (id-or-ids &rest body)
-  "Iterate BODY with each value of ID-OR-IDS bound to ‘id’.
+  "Iterate BODY with each value of ID-OR-IDS bound to `id'.
 ID-OR-IDS can be a single value or a list.
 
 If any iteration returns non-nil, iteration stops and the non-nil
 value is returned. Otherwise, returns nil.
 
-Each iteration will run with point at its original position.
-Whichever iteration moves point the farthest will determine where
-point will be at the end of the loop."
+Only a successful iteration (one which returns non-nil) will be
+able to move point."
   (declare (indent 1)
            (debug (form body)))
   (let ((ids (cl-gensym))
         (start (cl-gensym))
-        (end (cl-gensym))
         (result (cl-gensym)))
     `(cl-loop with ,ids = (if (listp ,id-or-ids) ,id-or-ids (list ,id-or-ids))
               and ,start = (point)
-              and ,end = (point)
               and ,result
               for id in ,ids
-              do (goto-char ,start)
-              (setq ,result (progn ,@body))
-              (goto-char (setq ,end (max ,end (point))))
-              thereis ,result)))
+              do (setq ,result (progn ,@body))
+              if ,result
+                return ,result
+              else
+                do (goto-char ,start))))
 
 (defvar literate-elisp-read (symbol-function 'read))
 
