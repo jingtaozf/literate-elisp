@@ -386,13 +386,17 @@ Argument IN: input stream."
            (cl-case c
              ;; check if it is ~#+~, which has only legal meaning when it is equal `#+end_src'
              (?\+
-              (let ((line (literate-elisp-read-until-end-of-line in)))
-                (when literate-elisp-debug-p
-                  (message "found org elisp end block:%s" line)))
-             ;; if it is, then switch to org mode syntax.
-              (setf literate-elisp-org-code-blocks-p nil)
-              nil)
-             ;; if it is not, then use original elip reader to read the following stream
+              (if-let ((line (literate-elisp-read-until-end-of-line in))
+                       ((literate-elisp-src-ids-loop literate-elisp-end-src-id
+                          (string-prefix-p (substring id 2) line t))))
+                  (progn
+                    (when literate-elisp-debug-p
+                      (message "found org elisp end block:%s" line))
+                    ;; if it is `#+end_src', then switch to org mode syntax.
+                    (setf literate-elisp-org-code-blocks-p nil))
+                ;; if it is ~#+~ followed by something other than ~end_src~, raise an error
+                (error "Unknown syntax on line %d: #+%s" (line-number-at-pos) line)))
+             ;; if it is not ~#+~, then use original elisp reader to read the following stream
              (t (funcall literate-elisp-read in)))))))
 #+END_SRC
 ** load/compile org file with new syntax
@@ -519,22 +523,24 @@ label:literate-elisp-tangle-reader
 #+BEGIN_SRC elisp
 (defun literate-elisp-tangle-reader (&optional buf)
   "Tangling codes in one code block.
-Arguemnt BUF: source buffer."
+Argument BUF: source buffer."
   (with-output-to-string
-      (with-current-buffer buf
-        (when (/= (point) (line-beginning-position))
-          ;; if reader still in last line,move it to next line.
-          (forward-line 1))
+    (with-current-buffer buf
+      (when (not (string-blank-p
+                  (buffer-substring (line-beginning-position) (point))))
+        ;; if reader still in last line,move it to next line.
+        (forward-line 1))
 
-        (loop for line = (buffer-substring-no-properties (line-beginning-position) (line-end-position))
-              until (or (eobp)
-                        (string-equal (trim-string (downcase line)) "#+end_src"))
-              do (loop for c across line
-                       do (write-char c))
-                 (when literate-elisp-debug-p
-                   (message "tangle elisp line %s" line))
-                 (write-char ?\n)
-                 (forward-line 1)))))
+      (cl-loop for line = (buffer-substring-no-properties (line-beginning-position) (line-end-position))
+               until (or (eobp)
+                         (literate-elisp-src-ids-loop literate-elisp-end-src-id
+                           (string-equal (string-trim (downcase line)) (downcase id))))
+               do (loop for c across line
+                        do (write-char c))
+               (when literate-elisp-debug-p
+                 (message "tangle elisp line %s" line))
+               (write-char ?\n)
+               (forward-line 1)))))
 #+END_SRC
 
 Now we can tangle the elisp code blocks with the following codes.
