@@ -1,4 +1,4 @@
-# -*- encoding:utf-8 Mode: POLY-ORG;  -*- --- 
+# -*- encoding:utf-8 Mode: POLY-ORG; org-src-preserve-indentation: t; -*- --- 
 #+TITLE:  elisp literate library
 #+SubTitle: a literate programming tool to write Emacs lisp codes in org mode.
 #+OPTIONS: toc:2
@@ -6,6 +6,8 @@
 #+LATEX_HEADER: % copied from lstlang1.sty, to add new language support to elisp.
 #+LATEX_HEADER: \lstdefinelanguage{elisp}[]{lisp} {}
 #+LATEX_HEADER: \lstloadlanguages{elisp}
+
+#+PROPERTY: header-args :results silent
 * Table of Contents                                            :TOC:noexport:
 - [[#introduction][Introduction]]
 - [[#how-to-do-it][How to do it?]]
