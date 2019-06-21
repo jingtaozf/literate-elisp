@@ -83,7 +83,7 @@ It'll indicate whether org mode syntax or elisp mode syntax is in use.
 
 And the code block begin/end identifies:
 #+BEGIN_SRC elisp
-(defvar literate-elisp-begin-src-id "#+BEGIN_SRC elisp")
+(defvar literate-elisp-begin-src-id '("#+BEGIN_SRC elisp" "#+BEGIN_SRC emacs-lisp"))
 (defvar literate-elisp-end-src-id "#+END_SRC")
 #+END_SRC
 

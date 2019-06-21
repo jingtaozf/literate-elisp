@@ -41,7 +41,7 @@
 
 (defvar literate-elisp-org-code-blocks-p nil)
 
-(defvar literate-elisp-begin-src-id "#+BEGIN_SRC elisp")
+(defvar literate-elisp-begin-src-id '("#+BEGIN_SRC elisp" "#+BEGIN_SRC emacs-lisp"))
 (defvar literate-elisp-end-src-id "#+END_SRC")
 
 (defun literate-elisp-peek (in)
