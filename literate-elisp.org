@@ -665,6 +665,33 @@ Let's write a test case for above code block.
   (should (equal literate-elisp-a-test-variable 10)))
 #+END_SRC
 
+*** test code block with lowercase block delimiters
+Some code blocks have ~#+begin_src elisp~ and ~#+end_src~ in lowercase; let's test whether ~literate-elisp~ can match it case-insensitively.
+#+begin_src elisp :load test
+(defvar literate-elisp-test-variable-2 20)
+#+end_src
+
+Let's write a test case for above code block.
+#+BEGIN_SRC elisp :load test
+(ert-deftest literate-elisp-read-lowercase-code-block ()
+  "A spec of code block with lowercase block delimiters."
+  (should (equal literate-elisp-test-variable-2 20)))
+#+END_SRC
+
+*** test code block with ~emacs-lisp~ instead of ~elisp~
+Some code blocks use ~emacs-lisp~ instead of the shortened ~elisp~ as the language specifier; let's test whether ~literate-elisp-src-ids-loop~ is matching it properly.
+#+BEGIN_SRC emacs-lisp :load test
+(defvar literate-elisp-test-variable-3 30)
+#+END_SRC
+
+Let's write a test case for above code block.
+#+BEGIN_SRC elisp :load test
+(ert-deftest literate-elisp-read-block-with-lang-emacs-lisp ()
+  "A spec of code block with the language specifier `emacs-lisp'
+instead of `elisp'."
+  (should (equal literate-elisp-test-variable-3 30)))
+#+END_SRC
+
 *** test literate-elisp-read-header-arguments
 label:test-literate-elisp-read-header-arguments
 #+BEGIN_SRC elisp :load test
