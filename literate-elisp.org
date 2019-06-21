@@ -67,9 +67,10 @@ as like the original Emacs lisp reader.
 * Implementation
 ** Preparation
 
-We use common lisp macros in this library
+We use common lisp and subr-x macros in this library
 #+BEGIN_SRC elisp
 (require 'cl-lib)
+(eval-when-compile (require 'subr-x))
 #+END_SRC
 
 There is a debug variable to switch on/off the log messages for this library.

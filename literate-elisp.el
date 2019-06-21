@@ -36,6 +36,7 @@
 
 
 (require 'cl-lib)
+(eval-when-compile (require 'subr-x))
 
 (defvar literate-elisp-debug-p nil)
 
