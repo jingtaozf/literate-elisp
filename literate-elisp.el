@@ -36,7 +36,6 @@
 
 
 (require 'cl-lib)
-(eval-when-compile (require 'subr-x))
 
 (defvar literate-elisp-debug-p nil)
 
@@ -244,18 +243,18 @@ Argument IN: input stream."
            (cl-case c
              ;; check if it is ~#+~, which has only legal meaning when it is equal `#+end_src'
              (?\+
-              (if-let ((line (literate-elisp-read-until-end-of-line in))
-                       ((literate-elisp-src-ids-loop literate-elisp-end-src-id
-                          (string-prefix-p (substring id 2) line t))))
-                  (progn
-                    (when literate-elisp-debug-p
-                      (message "found org elisp end block:%s" line))
-                    ;; if it is `#+end_src', then switch to org mode syntax.
-                    (setf literate-elisp-org-code-blocks-p nil))
-                ;; if it is ~#+~ followed by something other than ~end_src~, raise an error
-                (error "Unknown syntax on line %d: #+%s" (line-number-at-pos) line)))
-             ;; if it is not ~#+~, then use original elisp reader to read the following stream
-             (t (funcall literate-elisp-read in)))))))
+              (let ((line (literate-elisp-read-until-end-of-line in)))
+                (if (literate-elisp-src-ids-loop literate-elisp-end-src-id
+                      (string-prefix-p (substring id 2) line t))
+                    (progn
+                      (when literate-elisp-debug-p
+                        (message "found org elisp end block:%s" line))
+                      ;; if it is `#+end_src', then switch to org mode syntax.
+                      (setf literate-elisp-org-code-blocks-p nil))
+                  ;; if it is ~#+~ followed by something other than ~end_src~, raise an error
+                  (error "Unknown syntax on line %d: #+%s" (line-number-at-pos) line))))
+              ;; if it is not ~#+~, then use original elisp reader to read the following stream
+              (t (funcall literate-elisp-read in)))))))
 
 (defun literate-elisp-read-internal (&optional in)
   "A wrapper to follow the behavior of original read function.
