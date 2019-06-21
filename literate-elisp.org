@@ -264,6 +264,47 @@ Argument IN: input stream."
     (literate-elisp-next in)))
 #+END_SRC
 
+*** handle multiple values for literate-elisp-*-src-id
+This is a macro to allow ~literate-elisp-begin-src-id~ and ~literate-elisp-end-src-id~ to be either a string or a list of strings.
+Code that would otherwise be written this way:
+#+BEGIN_EXAMPLE elisp
+(string-equal literate-elisp-begin-src-id
+              string-var)
+#+END_EXAMPLE
+…can instead be written like this:
+#+BEGIN_EXAMPLE elisp
+(literate-elisp-src-ids-loop literate-elisp-begin-src-id
+  (string-match-p id string-var))
+#+END_EXAMPLE
+If ~literate-elisp-begin-src-id~ is a single string, the two examples will work identically; when it is a list, then the second example will loop over the macro body, with ‘id’ bound to each element of ~literate-elisp-begin-src-id~, and will return t if any iteration returns t.
+#+BEGIN_SRC elisp
+(defmacro literate-elisp-src-ids-loop (id-or-ids &rest body)
+  "Iterate BODY with each value of ID-OR-IDS bound to ‘id’.
+ID-OR-IDS can be a single value or a list.
+
+If any iteration returns non-nil, iteration stops and the non-nil
+value is returned. Otherwise, returns nil.
+
+Each iteration will run with point at its original position.
+Whichever iteration moves point the farthest will determine where
+point will be at the end of the loop."
+  (declare (indent 1)
+           (debug (form body)))
+  (let ((ids (gensym))
+        (start (gensym))
+        (end (gensym))
+        (result (gensym)))
+    `(cl-loop with ,ids = (if (listp ,id-or-ids) ,id-or-ids (list ,id-or-ids))
+              and ,start = (point)
+              and ,end = (point)
+              and ,result
+              for id in ,ids
+              do (goto-char ,start)
+              (setq ,result (progn ,@body))
+              (goto-char (setq ,end (max ,end (point))))
+              thereis ,result)))
+#+END_SRC
+
 *** alternative elisp read function
 When tangling org file, we want to tangle elisp codes without changing them(but Emacs original ~read~ will),
 so let's define a variable to hold the actual elisp reader used by us 
