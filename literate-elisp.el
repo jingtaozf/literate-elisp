@@ -41,8 +41,9 @@
 
 (defvar literate-elisp-org-code-blocks-p nil)
 
-(defvar literate-elisp-begin-src-id "#+BEGIN_SRC elisp")
+(defvar literate-elisp-begin-src-id "#+BEGIN_SRC")
 (defvar literate-elisp-end-src-id "#+END_SRC")
+(defvar literate-elisp-lang-ids (list "elisp" "emacs-lisp"))
 
 (defun literate-elisp-peek (in)
   "Return the next character without dropping it from the stream.
@@ -186,11 +187,22 @@ Argument IN: input stream."
 Argument IN: input stream."
   ;;     if it is not inside an elisp syntax
   (cond ((not literate-elisp-org-code-blocks-p)
-         ;; check if it is `#+begin_src elisp'
-         (if (cl-loop for i from 1 below (length literate-elisp-begin-src-id)
-                      for c1 = (aref literate-elisp-begin-src-id i)
-                      for c2 = (literate-elisp-next in)
-                      thereis (not (char-equal c1 c2)))
+         ;; check if it is `#+begin_src'…
+         (if (or (cl-loop for i from 1 below (length literate-elisp-begin-src-id)
+                          for c1 = (aref literate-elisp-begin-src-id i)
+                          for c2 = (literate-elisp-next in)
+                          with case-fold-search = t
+                          thereis (not (char-equal c1 c2)))
+                 (while (memq (literate-elisp-peek in) '(?\s ?\t))
+                   (literate-elisp-next in)) ; skip tabs and spaces, return nil
+                 ;; …followed by `elisp' or `emacs-lisp'
+                 (cl-loop with lang = ; this inner loop grabs the language specifier
+                          (cl-loop while (not (memq (literate-elisp-peek in) '(?\s ?\t ?\n)))
+                                   with rtn
+                                   collect (literate-elisp-next in) into rtn
+                                   finally return (apply 'string rtn))
+                          for id in literate-elisp-lang-ids
+                          never (string-equal (downcase lang) id)))
            ;; if it is not, continue to use org syntax and ignore this line
            (progn (literate-elisp-read-until-end-of-line in)
                   nil)

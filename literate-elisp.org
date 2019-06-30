@@ -83,8 +83,9 @@ It'll indicate whether org mode syntax or elisp mode syntax is in use.
 
 And the code block begin/end identifies:
 #+BEGIN_SRC elisp
-(defvar literate-elisp-begin-src-id "#+BEGIN_SRC elisp")
+(defvar literate-elisp-begin-src-id "#+BEGIN_SRC")
 (defvar literate-elisp-end-src-id "#+END_SRC")
+(defvar literate-elisp-lang-ids (list "elisp" "emacs-lisp"))
 #+END_SRC
 
 ** stream read functions
@@ -317,11 +318,22 @@ We have to be carefully when meeting the character ~#~ and handle different cond
 Argument IN: input stream."
   ;;     if it is not inside an elisp syntax
   (cond ((not literate-elisp-org-code-blocks-p)
-         ;; check if it is `#+begin_src elisp'
-         (if (cl-loop for i from 1 below (length literate-elisp-begin-src-id)
-                      for c1 = (aref literate-elisp-begin-src-id i)
-                      for c2 = (literate-elisp-next in)
-                      thereis (not (char-equal c1 c2)))
+         ;; check if it is `#+begin_src'…
+         (if (or (cl-loop for i from 1 below (length literate-elisp-begin-src-id)
+                          for c1 = (aref literate-elisp-begin-src-id i)
+                          for c2 = (literate-elisp-next in)
+                          with case-fold-search = t
+                          thereis (not (char-equal c1 c2)))
+                 (while (memq (literate-elisp-peek in) '(?\s ?\t))
+                   (literate-elisp-next in)) ; skip tabs and spaces, return nil
+                 ;; …followed by `elisp' or `emacs-lisp'
+                 (cl-loop with lang = ; this inner loop grabs the language specifier
+                          (cl-loop while (not (memq (literate-elisp-peek in) '(?\s ?\t ?\n)))
+                                   with rtn
+                                   collect (literate-elisp-next in) into rtn
+                                   finally return (apply 'string rtn))
+                          for id in literate-elisp-lang-ids
+                          never (string-equal (downcase lang) id)))
            ;; if it is not, continue to use org syntax and ignore this line
            (progn (literate-elisp-read-until-end-of-line in)
                   nil)
@@ -610,6 +622,32 @@ Let's write a test case for above code block.
   (should (equal literate-elisp-a-test-variable 10)))
 #+END_SRC
 
+*** test code block with lowercase block delimiters
+Some code blocks have ~#+begin_src elisp~ and ~#+end_src~ in lowercase; let's test whether ~literate-elisp~ can match it case-insensitively.
+#+begin_src elisp :load test
+(defvar literate-elisp-test-variable-2 20)
+#+end_src
+
+Let's write a test case for above code block.
+#+BEGIN_SRC elisp :load test
+(ert-deftest literate-elisp-read-lowercase-code-block ()
+  "A spec of code block with lowercase block delimiters."
+  (should (equal literate-elisp-test-variable-2 20)))
+#+END_SRC
+
+*** test code block with ~emacs-lisp~ instead of ~elisp~
+Some code blocks use ~emacs-lisp~ instead of the shortened ~elisp~ as the language specifier; let's test if ~literate-elisp-read-after-sharpsign~ matches it properly.
+#+BEGIN_SRC emacs-lisp :load test
+(defvar literate-elisp-test-variable-3 30)
+#+END_SRC
+
+Let's write a test case for the above code block.
+#+BEGIN_SRC elisp :load test
+(ert-deftest literate-elisp-read-block-with-lang-emacs-lisp ()
+  "A spec of code block with the language specifier `emacs-lisp'
+instead of `elisp'."
+  (should (equal literate-elisp-test-variable-3 30)))
+#+END_SRC
 *** test literate-elisp-read-header-arguments
 label:test-literate-elisp-read-header-arguments
 #+BEGIN_SRC elisp :load test
