@@ -333,11 +333,13 @@ Arguemnt BUF: source buffer."
                  (write-char ?\n)
                  (forward-line 1)))))
 
-(cl-defun literate-elisp-tangle (file &key (el-file (concat (file-name-sans-extension file) ".el"))
+(cl-defun literate-elisp-tangle (&optional (file (or org-src-source-file-name (buffer-file-name)))
+                                 &key (el-file (concat (file-name-sans-extension file) ".el"))
                                 header tail
                                 test-p)
   "Literate tangle
 Argument FILE: target file"
+  (interactive)
   (let* ((source-buffer (find-file-noselect file))
          (target-buffer (find-file-noselect el-file))
          (org-path-name (concat (file-name-base file) "." (file-name-extension file)))
@@ -356,12 +358,13 @@ Argument FILE: target file"
               "\n"))
 
     (with-current-buffer source-buffer
-      (goto-char (point-min))
-      (cl-loop for obj = (literate-elisp-read-internal source-buffer)
-               if obj
-               do (with-current-buffer target-buffer
-                    (insert obj "\n"))
-               until (eobp)))
+      (save-excursion
+        (goto-char (point-min))
+        (cl-loop for obj = (literate-elisp-read-internal source-buffer)
+                 if obj
+                 do (with-current-buffer target-buffer
+                      (insert obj "\n"))
+                 until (eobp))))
 
     (with-current-buffer target-buffer
       (when tail
