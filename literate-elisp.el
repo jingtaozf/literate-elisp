@@ -36,6 +36,7 @@
 
 
 (require 'cl-lib)
+(require 'subr-x)
 
 (defvar literate-elisp-debug-p nil)
 
@@ -327,7 +328,7 @@ Arguemnt BUF: source buffer."
 
         (loop for line = (buffer-substring-no-properties (line-beginning-position) (line-end-position))
               until (or (eobp)
-                        (string-equal (trim-string (downcase line)) "#+end_src"))
+                        (string-equal (string-trim (downcase line)) "#+end_src"))
               do (loop for c across line
                        do (write-char c))
                  (when literate-elisp-debug-p
