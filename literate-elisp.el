@@ -319,7 +319,9 @@ Arguemnt ARGS: the arguments to original advice function."
 Arguemnt BUF: source buffer."
   (with-output-to-string
       (with-current-buffer buf
-        (when (/= (point) (line-beginning-position))
+        (when (not (string-blank-p
+                    (buffer-substring (line-beginning-position)
+                                      (point))))
           ;; if reader still in last line,move it to next line.
           (forward-line 1))
 
