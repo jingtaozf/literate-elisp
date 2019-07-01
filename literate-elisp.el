@@ -234,7 +234,7 @@ Argument IN: input stream."
              ;; if it is, then switch to org mode syntax.
               (setf literate-elisp-org-code-blocks-p nil)
               nil)
-             ;; if it is not, then use original elip reader to read the following stream
+             ;; if it is not, then use original elisp reader to read the following stream
              (t (funcall literate-elisp-read in)))))))
 
 (defun literate-elisp-read-internal (&optional in)
@@ -317,7 +317,7 @@ Arguemnt ARGS: the arguments to original advice function."
 
 (defun literate-elisp-tangle-reader (&optional buf)
   "Tangling codes in one code block.
-Arguemnt BUF: source buffer."
+Argument BUF: source buffer."
   (with-output-to-string
       (with-current-buffer buf
         (when (not (string-blank-p

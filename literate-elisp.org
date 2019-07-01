@@ -55,7 +55,7 @@ using elisp function ~load~ to load a org file.
 The new reader will make elisp reader enter into org mode syntax, 
 which means it will ignore all lines until it meet ~#+BEGIN_SRC elisp~.
 
-When ~#+begign_src elisp~ occur,  [[https://orgmode.org/manual/Code-block-specific-header-arguments.html#Code-block-specific-header-arguments][header arguments]] for this code block will give us
+When ~#+begin_src elisp~ occur,  [[https://orgmode.org/manual/Code-block-specific-header-arguments.html#Code-block-specific-header-arguments][header arguments]] for this code block will give us
 a chance to switch back to normal Emacs lisp reader or not.
 
 And if it switch back to normal Emacs lisp reader, the end line ~#+END_SRC~ should mean the
@@ -83,7 +83,7 @@ It'll indicate whether org mode syntax or elisp mode syntax is in use.
 (defvar literate-elisp-org-code-blocks-p nil)
 #+END_SRC
 
-And the code block begin/end identifies:
+And the code block begin/end identifiers:
 #+BEGIN_SRC elisp
 (defvar literate-elisp-begin-src-id "#+BEGIN_SRC")
 (defvar literate-elisp-end-src-id "#+END_SRC")
@@ -154,7 +154,7 @@ Argument IN: input stream."
 when read org file character by character, if current line determines as an org syntax,
 then the whole line should ignore, so there should exist such a function.
 
-Before then, let's implement an abstract method to ~read characters repeatly while a predication meet~. 
+Before then, let's implement an abstract method to ~read characters repeatly while a predicate is met~.
 
 The ignored string return from this function 
 because it may be useful sometimes,for example when reading [[https://orgmode.org/manual/Code-block-specific-header-arguments.html#Code-block-specific-header-arguments][header arguments]] after ~#+begin_src elisp~.
@@ -316,7 +316,7 @@ Argument IN: input stream."
 #+END_SRC
 *** how to handle when meet ~#~
 
-We have to be carefully when meeting the character ~#~ and handle different conditions that may occur:
+We have to be careful when meeting the character ~#~ and handle different conditions that may occur:
 #+BEGIN_SRC elisp
 (defun literate-elisp-read-after-sharpsign (in)
   "Read after #.
@@ -366,7 +366,7 @@ Argument IN: input stream."
              ;; if it is, then switch to org mode syntax.
               (setf literate-elisp-org-code-blocks-p nil)
               nil)
-             ;; if it is not, then use original elip reader to read the following stream
+             ;; if it is not, then use original elisp reader to read the following stream
              (t (funcall literate-elisp-read in)))))))
 #+END_SRC
 ** load/compile org file with new syntax
@@ -493,7 +493,7 @@ label:literate-elisp-tangle-reader
 #+BEGIN_SRC elisp
 (defun literate-elisp-tangle-reader (&optional buf)
   "Tangling codes in one code block.
-Arguemnt BUF: source buffer."
+Argument BUF: source buffer."
   (with-output-to-string
       (with-current-buffer buf
         (when (not (string-blank-p
@@ -621,7 +621,7 @@ and signal an error, let's test whether ~literate-elisp~ can read it gracefully.
 ;; This is a comment line to test empty code block.
 #+END_SRC
 *** test code block with prefix space.
-Some code block have white spaces before ~#+begin_src elisp~, let's test whether ~literate-elisp~ can read it normally.
+Some code blocks have white spaces before ~#+begin_src elisp~, let's test whether ~literate-elisp~ can read it normally.
   #+BEGIN_SRC elisp :load test
 (defvar literate-elisp-a-test-variable 10)
   #+END_SRC
