@@ -36,6 +36,7 @@
 
 
 (require 'cl-lib)
+(require 'ob-core)
 (require 'subr-x)
 
 (defvar literate-elisp-debug-p nil)
@@ -45,6 +46,12 @@
 (defvar literate-elisp-begin-src-id "#+BEGIN_SRC")
 (defvar literate-elisp-end-src-id "#+END_SRC")
 (defvar literate-elisp-lang-ids (list "elisp" "emacs-lisp"))
+
+(unless (fboundp 'alist-get)
+  (defun alist-get (key alist)
+    "A minimal definition of ‘alist-get’, for compatibility with Emacs < 25.1"
+    (let ((x (assq key alist)))
+      (when x (cdr x)))))
 
 (defun literate-elisp-peek (in)
   "Return the next character without dropping it from the stream.
@@ -123,15 +130,18 @@ Argument FLAG: flag symbol."
     (t nil)))
 
 (defun literate-elisp-read-header-arguments (arguments)
-  "Read org code block header arguments.
+  "Read org code block header arguments as an alist.
 Argument ARGUMENTS: a string to hold the arguments."
-  (cl-loop for token in (split-string arguments)
-        collect (intern token)))
+  (org-babel-parse-header-arguments (string-trim arguments)))
 
 (defun literate-elisp-get-load-option (in)
   "Read load option from input stream.
 Argument IN: input stream."
-  (cl-getf (literate-elisp-read-header-arguments (literate-elisp-read-until-end-of-line in)) :load))
+  (let ((rtn (alist-get :load
+                        (literate-elisp-read-header-arguments
+                         (literate-elisp-read-until-end-of-line in)))))
+    (when (stringp rtn)
+      (intern rtn))))
 
 (defmacro literate-elisp-fix-invalid-read-syntax (in &rest body)
   "Fix read error `invalid-read-syntax'.

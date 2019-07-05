@@ -66,9 +66,10 @@ as like the original Emacs lisp reader.
 * Implementation
 ** Preparation
 
-We use common lisp macros and subr-x functions in this library
+We use common lisp macros, along with ob-core and subr-x functions, in this library
 #+BEGIN_SRC elisp
 (require 'cl-lib)
+(require 'ob-core)
 (require 'subr-x)
 #+END_SRC
 
@@ -88,6 +89,15 @@ And the code block begin/end identifiers:
 (defvar literate-elisp-begin-src-id "#+BEGIN_SRC")
 (defvar literate-elisp-end-src-id "#+END_SRC")
 (defvar literate-elisp-lang-ids (list "elisp" "emacs-lisp"))
+#+END_SRC
+
+This library uses ~alist-get~, which was first implemented in Emacs 25.1.
+#+BEGIN_SRC elisp
+(unless (fboundp 'alist-get)
+  (defun alist-get (key alist)
+    "A minimal definition of ‘alist-get’, for compatibility with Emacs < 25.1"
+    (let ((x (assq key alist)))
+      (when x (cdr x)))))
 #+END_SRC
 
 ** stream read functions
@@ -212,10 +222,9 @@ Let's also implement a function to read [[https://orgmode.org/manual/Code-block-
 and convert every key and value to a elisp symbol(test is here:ref:test-literate-elisp-read-header-arguments).
 #+BEGIN_SRC elisp
 (defun literate-elisp-read-header-arguments (arguments)
-  "Read org code block header arguments.
+  "Read org code block header arguments as an alist.
 Argument ARGUMENTS: a string to hold the arguments."
-  (cl-loop for token in (split-string arguments)
-        collect (intern token)))
+  (org-babel-parse-header-arguments (string-trim arguments)))
 #+END_SRC
 
 Let's define a convenient function to get load flag from the input stream. 
@@ -223,7 +232,11 @@ Let's define a convenient function to get load flag from the input stream.
 (defun literate-elisp-get-load-option (in)
   "Read load option from input stream.
 Argument IN: input stream."
-  (cl-getf (literate-elisp-read-header-arguments (literate-elisp-read-until-end-of-line in)) :load))
+  (let ((rtn (alist-get :load
+                        (literate-elisp-read-header-arguments
+                         (literate-elisp-read-until-end-of-line in)))))
+    (when (stringp rtn)
+      (intern rtn))))
 #+END_SRC
 
 
@@ -679,9 +692,27 @@ label:test-literate-elisp-read-header-arguments
 #+BEGIN_SRC elisp :load test
 (ert-deftest literate-elisp-read-header-arguments ()
   "A spec of function to read org header-arguments."
-  (should (equal (literate-elisp-read-header-arguments " :load yes") '(:load yes)))
-  (should (equal (literate-elisp-read-header-arguments " :load no  ") '(:load no)))
-  (should (equal (literate-elisp-read-header-arguments ":load yes") '(:load yes))))
+  (should (equal (literate-elisp-read-header-arguments " :load yes") '((:load . "yes"))))
+  (should (equal (literate-elisp-read-header-arguments " :load no  ") '((:load .  "no"))))
+  (should (equal (literate-elisp-read-header-arguments ":load yes") '((:load . "yes")))))
+#+END_SRC
+
+*** test the ~:load~ header argument
+#+BEGIN_SRC elisp :load test
+(ert-deftest literate-elisp-test-load-argument ()
+  (cl-flet ((test-header-args (string)
+              (let ((tempbuf (generate-new-buffer " *temp*")))
+                (unwind-protect
+                    (progn
+                      (with-current-buffer tempbuf
+                        (insert string)
+                        (goto-char 0))
+                      (literate-elisp-load-p
+                       (literate-elisp-get-load-option tempbuf)))
+                  (kill-buffer tempbuf)))))
+    (should (test-header-args " :load yes"))
+    (should-not (test-header-args " :load no  "))
+    (should (test-header-args ":load yes"))))
 #+END_SRC
 
 * References
