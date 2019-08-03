@@ -36,13 +36,22 @@
 
 
 (require 'cl-lib)
+(require 'ob-core)
+(require 'subr-x)
 
 (defvar literate-elisp-debug-p nil)
 
 (defvar literate-elisp-org-code-blocks-p nil)
 
-(defvar literate-elisp-begin-src-id "#+BEGIN_SRC elisp")
+(defvar literate-elisp-begin-src-id "#+BEGIN_SRC")
 (defvar literate-elisp-end-src-id "#+END_SRC")
+(defvar literate-elisp-lang-ids (list "elisp" "emacs-lisp"))
+
+(unless (fboundp 'alist-get)
+  (defun alist-get (key alist)
+    "A minimal definition of ‘alist-get’, for compatibility with Emacs < 25.1"
+    (let ((x (assq key alist)))
+      (when x (cdr x)))))
 
 (defun literate-elisp-peek (in)
   "Return the next character without dropping it from the stream.
@@ -121,31 +130,37 @@ Argument FLAG: flag symbol."
     (t nil)))
 
 (defun literate-elisp-read-header-arguments (arguments)
-  "Read org code block header arguments.
+  "Read org code block header arguments as an alist.
 Argument ARGUMENTS: a string to hold the arguments."
-  (cl-loop for token in (split-string arguments)
-        collect (intern token)))
+  (org-babel-parse-header-arguments (string-trim arguments)))
 
 (defun literate-elisp-get-load-option (in)
   "Read load option from input stream.
 Argument IN: input stream."
-  (cl-getf (literate-elisp-read-header-arguments (literate-elisp-read-until-end-of-line in)) :load))
+  (let ((rtn (alist-get :load
+                        (literate-elisp-read-header-arguments
+                         (literate-elisp-read-until-end-of-line in)))))
+    (when (stringp rtn)
+      (intern rtn))))
 
 (defmacro literate-elisp-fix-invalid-read-syntax (in &rest body)
   "Fix read error `invalid-read-syntax'.
 Argument IN: input stream.
 Argument BODY: body codes."
-  `(condition-case ex
-        ,@body
-      (invalid-read-syntax
-       (when literate-elisp-debug-p
-         (message "reach invalid read syntax %s at position %s"
-                  ex (literate-elisp-position in)))
-       (if (equal "#" (second ex))
-         ;; maybe this is #+end_src
-         (literate-elisp-read-after-sharpsign in)
-         ;; re-throw this signal because we don't know how to handle it.
-         (signal (car ex) (cdr err))))))
+  (declare (indent 1)
+           (debug ([&or bufferp markerp symbolp stringp "t"] body)))
+  (let ((ex (make-symbol "ex")))
+    `(condition-case ,ex
+         ,@body
+       (invalid-read-syntax
+        (when literate-elisp-debug-p
+          (message "reach invalid read syntax %s at position %s"
+                   ,ex (literate-elisp-position in)))
+        (if (equal "#" (second ,ex))
+            ;; maybe this is #+end_src
+            (literate-elisp-read-after-sharpsign in)
+          ;; re-throw this signal because we don't know how to handle it.
+          (signal (car ,ex) (cdr err)))))))
 
 (defun literate-elisp-ignore-white-space (in)
   "Skip white space characters.
@@ -186,11 +201,22 @@ Argument IN: input stream."
 Argument IN: input stream."
   ;;     if it is not inside an elisp syntax
   (cond ((not literate-elisp-org-code-blocks-p)
-         ;; check if it is `#+begin_src elisp'
-         (if (cl-loop for i from 1 below (length literate-elisp-begin-src-id)
-                      for c1 = (aref literate-elisp-begin-src-id i)
-                      for c2 = (literate-elisp-next in)
-                      thereis (not (char-equal c1 c2)))
+         ;; check if it is `#+begin_src'…
+         (if (or (cl-loop for i from 1 below (length literate-elisp-begin-src-id)
+                          for c1 = (aref literate-elisp-begin-src-id i)
+                          for c2 = (literate-elisp-next in)
+                          with case-fold-search = t
+                          thereis (not (char-equal c1 c2)))
+                 (while (memq (literate-elisp-peek in) '(?\s ?\t))
+                   (literate-elisp-next in)) ; skip tabs and spaces, return nil
+                 ;; …followed by `elisp' or `emacs-lisp'
+                 (cl-loop with lang = ; this inner loop grabs the language specifier
+                          (cl-loop while (not (memq (literate-elisp-peek in) '(?\s ?\t ?\n)))
+                                   with rtn
+                                   collect (literate-elisp-next in) into rtn
+                                   finally return (apply 'string rtn))
+                          for id in literate-elisp-lang-ids
+                          never (string-equal (downcase lang) id)))
            ;; if it is not, continue to use org syntax and ignore this line
            (progn (literate-elisp-read-until-end-of-line in)
                   nil)
@@ -218,7 +244,7 @@ Argument IN: input stream."
              ;; if it is, then switch to org mode syntax.
               (setf literate-elisp-org-code-blocks-p nil)
               nil)
-             ;; if it is not, then use original elip reader to read the following stream
+             ;; if it is not, then use original elisp reader to read the following stream
              (t (funcall literate-elisp-read in)))))))
 
 (defun literate-elisp-read-internal (&optional in)
@@ -301,16 +327,18 @@ Arguemnt ARGS: the arguments to original advice function."
 
 (defun literate-elisp-tangle-reader (&optional buf)
   "Tangling codes in one code block.
-Arguemnt BUF: source buffer."
+Argument BUF: source buffer."
   (with-output-to-string
       (with-current-buffer buf
-        (when (/= (point) (line-beginning-position))
+        (when (not (string-blank-p
+                    (buffer-substring (line-beginning-position)
+                                      (point))))
           ;; if reader still in last line,move it to next line.
           (forward-line 1))
 
         (loop for line = (buffer-substring-no-properties (line-beginning-position) (line-end-position))
               until (or (eobp)
-                        (string-equal (trim-string (downcase line)) "#+end_src"))
+                        (string-equal (string-trim (downcase line)) "#+end_src"))
               do (loop for c across line
                        do (write-char c))
                  (when literate-elisp-debug-p
@@ -318,11 +346,13 @@ Arguemnt BUF: source buffer."
                  (write-char ?\n)
                  (forward-line 1)))))
 
-(cl-defun literate-elisp-tangle (file &key (el-file (concat (file-name-sans-extension file) ".el"))
+(cl-defun literate-elisp-tangle (&optional (file (or org-src-source-file-name (buffer-file-name)))
+                                 &key (el-file (concat (file-name-sans-extension file) ".el"))
                                 header tail
                                 test-p)
   "Literate tangle
 Argument FILE: target file"
+  (interactive)
   (let* ((source-buffer (find-file-noselect file))
          (target-buffer (find-file-noselect el-file))
          (org-path-name (concat (file-name-base file) "." (file-name-extension file)))
@@ -341,12 +371,13 @@ Argument FILE: target file"
               "\n"))
 
     (with-current-buffer source-buffer
-      (goto-char (point-min))
-      (cl-loop for obj = (literate-elisp-read-internal source-buffer)
-               if obj
-               do (with-current-buffer target-buffer
-                    (insert obj "\n"))
-               until (eobp)))
+      (save-excursion
+        (goto-char (point-min))
+        (cl-loop for obj = (literate-elisp-read-internal source-buffer)
+                 if obj
+                 do (with-current-buffer target-buffer
+                      (insert obj "\n"))
+                 until (eobp))))
 
     (with-current-buffer target-buffer
       (when tail
