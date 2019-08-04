@@ -160,7 +160,7 @@ Argument BODY: body codes."
             ;; maybe this is #+end_src
             (literate-elisp-read-after-sharpsign in)
           ;; re-throw this signal because we don't know how to handle it.
-          (signal (car ,ex) (cdr err)))))))
+          (signal (car ,ex) (cdr ,ex)))))))
 
 (defun literate-elisp-ignore-white-space (in)
   "Skip white space characters.
