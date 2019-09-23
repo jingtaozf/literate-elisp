@@ -349,6 +349,30 @@ will be temporarily set to that of `literate-elisp-read-internal'
                 literate-elisp-read)))
      ,@body))
 
+(with-eval-after-load 'elisp-refs
+  (defun literate-elisp-refs--read-all-buffer-forms (orig-fun buffer)
+    ":around advice for `elisp-refs--read-all-buffer-forms',
+to make the `literate-elisp' package comparible with `elisp-refs'."
+    (literate-elisp--replace-read-maybe
+        (literate-elisp--file-is-org-p
+         (with-current-buffer buffer elisp-refs--path))
+      (funcall orig-fun buffer)))
+  (advice-add 'elisp-refs--read-all-buffer-forms :around #'literate-elisp-refs--read-all-buffer-forms)
+
+  (defun literate-elisp-refs--loaded-paths (rtn)
+    ":filter-return advice for `elisp-refs--loaded-paths',
+to prevent it from ignoring Org files."
+    (append rtn
+            (delete-dups
+             (cl-loop for file in (mapcar #'car load-history)
+                      if (string-suffix-p ".org" file)
+                         collect file
+                      ;; handle compiled literate-elisp files
+                      else if (and (string-suffix-p ".org.elc" file)
+                                   (file-exists-p (substring file 0 -4)))
+                         collect (substring file 0 -4)))))
+  (advice-add 'elisp-refs--loaded-paths :filter-return #'literate-elisp-refs--loaded-paths))
+
 (defun literate-elisp-tangle-reader (&optional buf)
   "Tangling codes in one code block.
 Argument BUF: source buffer."
