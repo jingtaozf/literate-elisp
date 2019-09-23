@@ -316,7 +316,7 @@ Arguemnt LOAD: load the file after compiling."
 (defun literate-elisp-find-library-name (orig-fun &rest args)
   "An advice to make `find-library-name' can recognize org source file.
 Argument ORIG-FUN: original function of this advice.
-Arguemnt ARGS: the arguments to original advice function."
+Argument ARGS: the arguments to original advice function."
 
   (when (string-match "\\(\\.org\\.el\\)" (car args))
     (setf (car args) (replace-match ".org" t t (car args)))
