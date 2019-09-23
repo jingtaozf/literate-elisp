@@ -325,6 +325,30 @@ Argument ARGS: the arguments to original advice function."
   (apply orig-fun args))
 (advice-add 'find-library-name :around #'literate-elisp-find-library-name)
 
+(defun literate-elisp--file-is-org-p (file)
+  "Return t if file at FILE is an Org-Mode document, otherwise nil."
+  ;; Load FILE into a temporary buffer and see if `set-auto-mode' sets
+  ;; it to `org-mode' (or a derivative thereof).
+  (with-temp-buffer
+    (insert-file-contents file t)
+    (delay-mode-hooks (set-auto-mode))
+    (derived-mode-p 'org-mode)))
+
+(defmacro literate-elisp--replace-read-maybe (test &rest body)
+  "A wrapper which temporarily redefines `read' (if necessary).
+If form TEST evaluates to non-nil, then the function slot of `read'
+will be temporarily set to that of `literate-elisp-read-internal'
+\(by wrapping BODY in a `cl-flet' call)."
+  (declare (indent 1)
+           (debug (form body)))
+  `(cl-letf (((symbol-function 'read)
+              (if ,test
+                  (symbol-function 'literate-elisp-read-internal)
+                ;; `literate-elisp-read' holds the original function
+                ;; definition for `read'.
+                literate-elisp-read)))
+     ,@body))
+
 (defun literate-elisp-tangle-reader (&optional buf)
   "Tangling codes in one code block.
 Argument BUF: source buffer."

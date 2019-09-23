@@ -492,6 +492,36 @@ Argument ARGS: the arguments to original advice function."
 (advice-add 'find-library-name :around #'literate-elisp-find-library-name)
 #+END_SRC
 
+** compatibility with other libraries
+Our next job is to make ~literate-elisp~ work with your favorite package.
+First, we define a function and a macro useful for adding ~literate-elisp~ support for other libraries.
+#+BEGIN_SRC elisp
+(defun literate-elisp--file-is-org-p (file)
+  "Return t if file at FILE is an Org-Mode document, otherwise nil."
+  ;; Load FILE into a temporary buffer and see if `set-auto-mode' sets
+  ;; it to `org-mode' (or a derivative thereof).
+  (with-temp-buffer
+    (insert-file-contents file t)
+    (delay-mode-hooks (set-auto-mode))
+    (derived-mode-p 'org-mode)))
+
+(defmacro literate-elisp--replace-read-maybe (test &rest body)
+  "A wrapper which temporarily redefines `read' (if necessary).
+If form TEST evaluates to non-nil, then the function slot of `read'
+will be temporarily set to that of `literate-elisp-read-internal'
+\(by wrapping BODY in a `cl-flet' call)."
+  (declare (indent 1)
+           (debug (form body)))
+  `(cl-letf (((symbol-function 'read)
+              (if ,test
+                  (symbol-function 'literate-elisp-read-internal)
+                ;; `literate-elisp-read' holds the original function
+                ;; definition for `read'.
+                literate-elisp-read)))
+     ,@body))
+#+END_SRC
+
+Then, we implement support for other libraries. These generally take the form of ~:around~ advice to functions that use ~read~ in some way (or which call functions that use ~read~), so in those cases we will want to use the ~literate-elisp--replace-read-maybe~ macro to change ~read~'s function definition when necessary.
 ** function to tangle org file to elisp file
 To build an Emacs lisp file from an org file without depending on ~literate-elisp~ library,
 we need tangle an org file to an Emacs lisp file(.el).
