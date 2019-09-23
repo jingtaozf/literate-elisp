@@ -373,6 +373,16 @@ to prevent it from ignoring Org files."
                          collect (substring file 0 -4)))))
   (advice-add 'elisp-refs--loaded-paths :filter-return #'literate-elisp-refs--loaded-paths))
 
+  (with-eval-after-load 'helpful
+    (defun literate-elisp-helpful--find-by-macroexpanding (orig-fun &rest args)
+      ":around advice for `helpful--find-by-macroexpanding',
+  to make the `literate-elisp' package comparible with `helpful'."
+      (literate-elisp--replace-read-maybe
+          (literate-elisp--file-is-org-p
+           (with-current-buffer (car args) buffer-file-name))
+        (apply orig-fun args)))
+    (advice-add 'helpful--find-by-macroexpanding :around #'literate-elisp-helpful--find-by-macroexpanding))
+
 (defun literate-elisp-tangle-reader (&optional buf)
   "Tangling codes in one code block.
 Argument BUF: source buffer."

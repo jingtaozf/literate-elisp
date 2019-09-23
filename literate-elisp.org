@@ -548,6 +548,19 @@ to prevent it from ignoring Org files."
                          collect (substring file 0 -4)))))
   (advice-add 'elisp-refs--loaded-paths :filter-return #'literate-elisp-refs--loaded-paths))
 #+END_SRC
+*** support for Helpful
+The above support for ~elisp-refs~ does most of the necessary work for supporting ~helpful~; the following is for the edge case of when ~helpful~ starts expanding macros in a source file to find a definition.
+#+BEGIN_SRC elisp
+  (with-eval-after-load 'helpful
+    (defun literate-elisp-helpful--find-by-macroexpanding (orig-fun &rest args)
+      ":around advice for `helpful--find-by-macroexpanding',
+  to make the `literate-elisp' package comparible with `helpful'."
+      (literate-elisp--replace-read-maybe
+          (literate-elisp--file-is-org-p
+           (with-current-buffer (car args) buffer-file-name))
+        (apply orig-fun args)))
+    (advice-add 'helpful--find-by-macroexpanding :around #'literate-elisp-helpful--find-by-macroexpanding))
+#+END_SRC
 ** function to tangle org file to elisp file
 To build an Emacs lisp file from an org file without depending on ~literate-elisp~ library,
 we need tangle an org file to an Emacs lisp file(.el).
