@@ -676,14 +676,13 @@ instead of `elisp'."
 *** test code block with indentation
 Some code blocks have indentation on the first line; let's test whether ~literate-elisp~ can read them normally.
 #+BEGIN_SRC emacs-lisp :load test
-  (defvar literate-elisp-test-variable-4 40)
+(defvar literate-elisp-test-variable-4 40)
 #+END_SRC
 
 Let's write a test case for the above code block.
 #+BEGIN_SRC elisp :load test
 (ert-deftest literate-elisp-read-block-with-indentation ()
-  "A spec of code block with the language specifier `emacs-lisp'
-instead of `elisp'."
+  "A spec of code block with indentation on the first line."
   (should (equal literate-elisp-test-variable-4 40)))
 #+END_SRC
 
