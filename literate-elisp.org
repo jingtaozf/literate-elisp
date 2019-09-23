@@ -315,7 +315,7 @@ Argument IN: input stream."
     (literate-elisp-fix-invalid-read-syntax in
       (cond
         ((not ch)
-         (error "End of file during parsing"))
+         (signal 'end-of-file nil))
         ((and (not literate-elisp-org-code-blocks-p)
               (not (eq ch ?\#)))
          (let ((line (literate-elisp-read-until-end-of-line in)))
