@@ -315,7 +315,7 @@ Argument IN: input stream."
     (literate-elisp-fix-invalid-read-syntax in
       (cond
         ((not ch)
-         (error "End of file during parsing"))
+         (signal 'end-of-file nil))
         ((and (not literate-elisp-org-code-blocks-p)
               (not (eq ch ?\#)))
          (let ((line (literate-elisp-read-until-end-of-line in)))
@@ -482,7 +482,7 @@ don't treat org file as a source file, so we have to add an advice function to ~
 (defun literate-elisp-find-library-name (orig-fun &rest args)
   "An advice to make `find-library-name' can recognize org source file.
 Argument ORIG-FUN: original function of this advice.
-Arguemnt ARGS: the arguments to original advice function."
+Argument ARGS: the arguments to original advice function."
 
   (when (string-match "\\(\\.org\\.el\\)" (car args))
     (setf (car args) (replace-match ".org" t t (car args)))
@@ -492,6 +492,75 @@ Arguemnt ARGS: the arguments to original advice function."
 (advice-add 'find-library-name :around #'literate-elisp-find-library-name)
 #+END_SRC
 
+** compatibility with other libraries
+Our next job is to make ~literate-elisp~ work with your favorite package.
+First, we define a function and a macro useful for adding ~literate-elisp~ support for other libraries.
+#+BEGIN_SRC elisp
+(defun literate-elisp--file-is-org-p (file)
+  "Return t if file at FILE is an Org-Mode document, otherwise nil."
+  ;; Load FILE into a temporary buffer and see if `set-auto-mode' sets
+  ;; it to `org-mode' (or a derivative thereof).
+  (with-temp-buffer
+    (insert-file-contents file t)
+    (delay-mode-hooks (set-auto-mode))
+    (derived-mode-p 'org-mode)))
+
+(defmacro literate-elisp--replace-read-maybe (test &rest body)
+  "A wrapper which temporarily redefines `read' (if necessary).
+If form TEST evaluates to non-nil, then the function slot of `read'
+will be temporarily set to that of `literate-elisp-read-internal'
+\(by wrapping BODY in a `cl-flet' call)."
+  (declare (indent 1)
+           (debug (form body)))
+  `(cl-letf (((symbol-function 'read)
+              (if ,test
+                  (symbol-function 'literate-elisp-read-internal)
+                ;; `literate-elisp-read' holds the original function
+                ;; definition for `read'.
+                literate-elisp-read)))
+     ,@body))
+#+END_SRC
+
+Then, we implement support for other libraries. These generally take the form of ~:around~ advice to functions that use ~read~ in some way (or which call functions that use ~read~), so in those cases we will want to use the ~literate-elisp--replace-read-maybe~ macro to change ~read~'s function definition when necessary.
+*** support for Elisp-Refs
+#+BEGIN_SRC elisp
+(with-eval-after-load 'elisp-refs
+  (defun literate-elisp-refs--read-all-buffer-forms (orig-fun buffer)
+    ":around advice for `elisp-refs--read-all-buffer-forms',
+to make the `literate-elisp' package comparible with `elisp-refs'."
+    (literate-elisp--replace-read-maybe
+        (literate-elisp--file-is-org-p
+         (with-current-buffer buffer elisp-refs--path))
+      (funcall orig-fun buffer)))
+  (advice-add 'elisp-refs--read-all-buffer-forms :around #'literate-elisp-refs--read-all-buffer-forms)
+
+  (defun literate-elisp-refs--loaded-paths (rtn)
+    ":filter-return advice for `elisp-refs--loaded-paths',
+to prevent it from ignoring Org files."
+    (append rtn
+            (delete-dups
+             (cl-loop for file in (mapcar #'car load-history)
+                      if (string-suffix-p ".org" file)
+                         collect file
+                      ;; handle compiled literate-elisp files
+                      else if (and (string-suffix-p ".org.elc" file)
+                                   (file-exists-p (substring file 0 -4)))
+                         collect (substring file 0 -4)))))
+  (advice-add 'elisp-refs--loaded-paths :filter-return #'literate-elisp-refs--loaded-paths))
+#+END_SRC
+*** support for Helpful
+The above support for ~elisp-refs~ does most of the necessary work for supporting ~helpful~; the following is for the edge case of when ~helpful~ starts expanding macros in a source file to find a definition.
+#+BEGIN_SRC elisp
+  (with-eval-after-load 'helpful
+    (defun literate-elisp-helpful--find-by-macroexpanding (orig-fun &rest args)
+      ":around advice for `helpful--find-by-macroexpanding',
+  to make the `literate-elisp' package comparible with `helpful'."
+      (literate-elisp--replace-read-maybe
+          (literate-elisp--file-is-org-p
+           (with-current-buffer (car args) buffer-file-name))
+        (apply orig-fun args)))
+    (advice-add 'helpful--find-by-macroexpanding :around #'literate-elisp-helpful--find-by-macroexpanding))
+#+END_SRC
 ** function to tangle org file to elisp file
 To build an Emacs lisp file from an org file without depending on ~literate-elisp~ library,
 we need tangle an org file to an Emacs lisp file(.el).
@@ -676,14 +745,13 @@ instead of `elisp'."
 *** test code block with indentation
 Some code blocks have indentation on the first line; let's test whether ~literate-elisp~ can read them normally.
 #+BEGIN_SRC emacs-lisp :load test
-  (defvar literate-elisp-test-variable-4 40)
+(defvar literate-elisp-test-variable-4 40)
 #+END_SRC
 
 Let's write a test case for the above code block.
 #+BEGIN_SRC elisp :load test
 (ert-deftest literate-elisp-read-block-with-indentation ()
-  "A spec of code block with the language specifier `emacs-lisp'
-instead of `elisp'."
+  "A spec of code block with indentation on the first line."
   (should (equal literate-elisp-test-variable-4 40)))
 #+END_SRC
 

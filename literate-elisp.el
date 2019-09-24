@@ -184,7 +184,7 @@ Argument IN: input stream."
     (literate-elisp-fix-invalid-read-syntax in
       (cond
         ((not ch)
-         (error "End of file during parsing"))
+         (signal 'end-of-file nil))
         ((and (not literate-elisp-org-code-blocks-p)
               (not (eq ch ?\#)))
          (let ((line (literate-elisp-read-until-end-of-line in)))
@@ -316,7 +316,7 @@ Arguemnt LOAD: load the file after compiling."
 (defun literate-elisp-find-library-name (orig-fun &rest args)
   "An advice to make `find-library-name' can recognize org source file.
 Argument ORIG-FUN: original function of this advice.
-Arguemnt ARGS: the arguments to original advice function."
+Argument ARGS: the arguments to original advice function."
 
   (when (string-match "\\(\\.org\\.el\\)" (car args))
     (setf (car args) (replace-match ".org" t t (car args)))
@@ -324,6 +324,64 @@ Arguemnt ARGS: the arguments to original advice function."
       (message "fix literate compiled file in find-library-name :%s" (car args))))
   (apply orig-fun args))
 (advice-add 'find-library-name :around #'literate-elisp-find-library-name)
+
+(defun literate-elisp--file-is-org-p (file)
+  "Return t if file at FILE is an Org-Mode document, otherwise nil."
+  ;; Load FILE into a temporary buffer and see if `set-auto-mode' sets
+  ;; it to `org-mode' (or a derivative thereof).
+  (with-temp-buffer
+    (insert-file-contents file t)
+    (delay-mode-hooks (set-auto-mode))
+    (derived-mode-p 'org-mode)))
+
+(defmacro literate-elisp--replace-read-maybe (test &rest body)
+  "A wrapper which temporarily redefines `read' (if necessary).
+If form TEST evaluates to non-nil, then the function slot of `read'
+will be temporarily set to that of `literate-elisp-read-internal'
+\(by wrapping BODY in a `cl-flet' call)."
+  (declare (indent 1)
+           (debug (form body)))
+  `(cl-letf (((symbol-function 'read)
+              (if ,test
+                  (symbol-function 'literate-elisp-read-internal)
+                ;; `literate-elisp-read' holds the original function
+                ;; definition for `read'.
+                literate-elisp-read)))
+     ,@body))
+
+(with-eval-after-load 'elisp-refs
+  (defun literate-elisp-refs--read-all-buffer-forms (orig-fun buffer)
+    ":around advice for `elisp-refs--read-all-buffer-forms',
+to make the `literate-elisp' package comparible with `elisp-refs'."
+    (literate-elisp--replace-read-maybe
+        (literate-elisp--file-is-org-p
+         (with-current-buffer buffer elisp-refs--path))
+      (funcall orig-fun buffer)))
+  (advice-add 'elisp-refs--read-all-buffer-forms :around #'literate-elisp-refs--read-all-buffer-forms)
+
+  (defun literate-elisp-refs--loaded-paths (rtn)
+    ":filter-return advice for `elisp-refs--loaded-paths',
+to prevent it from ignoring Org files."
+    (append rtn
+            (delete-dups
+             (cl-loop for file in (mapcar #'car load-history)
+                      if (string-suffix-p ".org" file)
+                         collect file
+                      ;; handle compiled literate-elisp files
+                      else if (and (string-suffix-p ".org.elc" file)
+                                   (file-exists-p (substring file 0 -4)))
+                         collect (substring file 0 -4)))))
+  (advice-add 'elisp-refs--loaded-paths :filter-return #'literate-elisp-refs--loaded-paths))
+
+  (with-eval-after-load 'helpful
+    (defun literate-elisp-helpful--find-by-macroexpanding (orig-fun &rest args)
+      ":around advice for `helpful--find-by-macroexpanding',
+  to make the `literate-elisp' package comparible with `helpful'."
+      (literate-elisp--replace-read-maybe
+          (literate-elisp--file-is-org-p
+           (with-current-buffer (car args) buffer-file-name))
+        (apply orig-fun args)))
+    (advice-add 'helpful--find-by-macroexpanding :around #'literate-elisp-helpful--find-by-macroexpanding))
 
 (defun literate-elisp-tangle-reader (&optional buf)
   "Tangling codes in one code block.
