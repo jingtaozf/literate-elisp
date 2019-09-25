@@ -19,6 +19,7 @@ jobs:
         evm install $EVM_EMACS --use --skip
     - name: run test       
       run: |
+        export PATH=$HOME/.evm/bin:$PATH
         emacs -Q --batch -L . \
          --load literate-elisp \
          --eval "(setf literate-elisp-test-p t)" \
