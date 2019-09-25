@@ -8,6 +8,7 @@ jobs:
         EVM_EMACS: [emacs-24.4-travis, emacs-24.5-travis, emacs-25.1-travis, emacs-25.2-travis, emacs-25.3-travis]
     steps:
     - uses: actions/checkout@v1
+    - uses: actions/setup-ruby@v1
     - name: install Emacs
       env:
         EVM_EMACS: ${{matrix.EVM_EMACS}}
