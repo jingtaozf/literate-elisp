@@ -1,0 +1,29 @@
+name: Continous Integration
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        EVM_EMACS:[emacs-24.4-travis,emacs-24.5-travis,emacs-25.1-travis,emacs-25.2-travis,emacs-25.3-travis]
+    steps:
+    - uses: actions/checkout@v1
+    - name: install Emacs
+      env:
+        EVM_EMACS: ${{matrix.EVM_EMACS}}
+      run: |
+        curl -fsSkL https://gist.github.com/rejeep/ebcd57c3af83b049833b/raw > x.sh && source ./x.sh
+        evm install $EVM_EMACS --use --skip
+    - name: run test       
+      run: |
+        emacs -Q --batch -L . \
+         --load literate-elisp \
+         --eval "(setf literate-elisp-test-p t)" \
+         --funcall literate-elisp-batch-load literate-elisp.org \
+         --funcall literate-elisp-batch-load readme.org \
+         --funcall ert-run-tests-batch-and-exit
+
+        
+        
+
+        
