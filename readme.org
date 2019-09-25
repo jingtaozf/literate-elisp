@@ -8,7 +8,7 @@
 [[https://melpa.org/#/literate-elisp][file:https://melpa.org/packages/literate-elisp-badge.svg]]
 [[https://stable.melpa.org/#/literate-elisp][file:https://stable.melpa.org/packages/literate-elisp-badge.svg]]
 [[https://travis-ci.com/jingtaozf/literate-elisp][file:https://travis-ci.com/jingtaozf/literate-elisp.svg?branch=master]]
-
+[[https://github.com/jingtaozf/literate-elisp/actions][file:https://github.com/jingtaozf/literate-elisp/workflows/continuous-integration/badge.svg]]
 
 * Table of Contents                                                   :TOC:
 - [[#introduction][Introduction]]
