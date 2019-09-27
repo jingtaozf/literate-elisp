@@ -19,7 +19,6 @@
   - [[#load-an-org-file][load an org file]]
   - [[#byte-compile-an-org-file][byte compile an org file]]
   - [[#a-new-code-block-header-argument-load][a new code block header argument ~load~]]
-  - [[#how-to-insert-code-block-quickly-1][How to insert code block quickly]]
 - [[#demo-routines][demo routines]]
   - [[#a-demo-macro][a demo macro]]
 - [[#a-demo-emacs-configuration][a demo Emacs configuration]]
@@ -140,8 +139,6 @@ read them or not should define,and it has the following meanings:
     (message "this function will be loaded by literate-elisp only if literate-elisp-test-p is true.~%"))
    ,#+END_SRC
   #+END_EXAMPLE
-
-** How to insert code block quickly
 
 * demo routines
 ** a demo macro
