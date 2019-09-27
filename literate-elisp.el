@@ -49,7 +49,7 @@
 
 (unless (fboundp 'alist-get)
   (defun alist-get (key alist)
-    "A minimal definition of ‘alist-get’, for compatibility with Emacs < 25.1"
+    "A minimal definition of `alist-get', for compatibility with Emacs < 25.1"
     (let ((x (assq key alist)))
       (when x (cdr x)))))
 
@@ -201,7 +201,7 @@ Argument IN: input stream."
 Argument IN: input stream."
   ;;     if it is not inside an elisp syntax
   (cond ((not literate-elisp-org-code-blocks-p)
-         ;; check if it is `#+begin_src'…
+         ;; check if it is `#+begin_src'
          (if (or (cl-loop for i from 1 below (length literate-elisp-begin-src-id)
                           for c1 = (aref literate-elisp-begin-src-id i)
                           for c2 = (literate-elisp-next in)
@@ -209,7 +209,7 @@ Argument IN: input stream."
                           thereis (not (char-equal c1 c2)))
                  (while (memq (literate-elisp-peek in) '(?\s ?\t))
                    (literate-elisp-next in)) ; skip tabs and spaces, return nil
-                 ;; …followed by `elisp' or `emacs-lisp'
+                 ;; followed by `elisp' or `emacs-lisp'
                  (cl-loop with lang = ; this inner loop grabs the language specifier
                           (cl-loop while (not (memq (literate-elisp-peek in) '(?\s ?\t ?\n)))
                                    with rtn
@@ -442,6 +442,41 @@ Argument FILE: target file"
         (insert "\n" tail))
       (save-buffer)
       (kill-current-buffer))))
+
+(defvar literate-elisp-language-candidates
+    '("lisp" "elisp" "axiom" "spad" "python" "C" "sh" "java" "js" "clojure" "clojurescript" "C++" "css"
+      "calc" "asymptote" "dot" "gnuplot" "ledger" "lilypond" "mscgen"
+      "octave" "oz" "plantuml" "R" "sass" "screen" "sql" "awk" "ditaa"
+      "haskell" "latex" "lisp" "matlab" "ocaml" "org" "perl" "ruby"
+      "scheme" "sqlite"))
+
+(defun literate-elisp-get-language-to-insert ()
+  "Determine the current literate language before inserting a code block."
+  (or (org-entry-get (point) "literate-lang" t) ;get it from an org property at current point.
+      ;; get it from a candidates list.
+      (completing-read "Source Code Language: " literate-elisp-language-candidates)))
+
+(defvar literate-elisp-valid-load-types '("yes" "no" "test"))
+
+(defun literate-elisp-get-load-type-to-insert ()
+  "Determine the current literate load type before inserting a code block."
+  (or (org-entry-get (point) "literate-load" t) ;get it from an org property at current point.
+      (completing-read "Source Code Load Type: " literate-elisp-valid-load-types)))
+
+(defun literate-elisp-insert-org-src-block ()
+  "Insert the source code block in `org-mode'."
+  (interactive)
+  (let ((lang (literate-elisp-get-language-to-insert))
+        (load-type (literate-elisp-get-load-type-to-insert)))
+    (when lang
+      (insert (format "#+BEGIN_SRC %s" lang)
+              (if (or (null load-type) (string= "yes" load-type))
+                ""
+                (format " :load %s" load-type))
+              "\n")
+      (newline)
+      (insert "#+END_SRC\n")
+      (forward-line -2))))
 
 
 (provide 'literate-elisp)

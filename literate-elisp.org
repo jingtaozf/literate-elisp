@@ -7,6 +7,9 @@
 #+LATEX_HEADER: \lstdefinelanguage{elisp}[]{lisp} {}
 #+LATEX_HEADER: \lstloadlanguages{elisp}
 #+PROPERTY: header-args :results silent
+#+PROPERTY: literate-lang elisp
+#+PROPERTY: literate-load yes
+
 * Table of Contents                                            :TOC:noexport:
 - [[#introduction][Introduction]]
 - [[#how-to-do-it][How to do it?]]
@@ -15,7 +18,10 @@
   - [[#stream-read-functions][stream read functions]]
   - [[#handle-org-mode-syntax][handle org mode syntax]]
   - [[#loadcompile-org-file-with-new-syntax][load/compile org file with new syntax]]
+  - [[#compatibility-with-other-libraries][compatibility with other libraries]]
   - [[#function-to-tangle-org-file-to-elisp-file][function to tangle org file to elisp file]]
+- [[#release-current-library][Release current library]]
+- [[#how-to-insert-code-block-in-org-file][How to insert code block in org file]]
 - [[#tests][Tests]]
   - [[#introduction-1][Introduction]]
   - [[#test-cases][test cases]]
@@ -95,7 +101,7 @@ This library uses ~alist-get~, which was first implemented in Emacs 25.1.
 #+BEGIN_SRC elisp
 (unless (fboundp 'alist-get)
   (defun alist-get (key alist)
-    "A minimal definition of ‘alist-get’, for compatibility with Emacs < 25.1"
+    "A minimal definition of `alist-get', for compatibility with Emacs < 25.1"
     (let ((x (assq key alist)))
       (when x (cdr x)))))
 #+END_SRC
@@ -336,7 +342,7 @@ We have to be careful when meeting the character ~#~ and handle different condit
 Argument IN: input stream."
   ;;     if it is not inside an elisp syntax
   (cond ((not literate-elisp-org-code-blocks-p)
-         ;; check if it is `#+begin_src'…
+         ;; check if it is `#+begin_src'
          (if (or (cl-loop for i from 1 below (length literate-elisp-begin-src-id)
                           for c1 = (aref literate-elisp-begin-src-id i)
                           for c2 = (literate-elisp-next in)
@@ -344,7 +350,7 @@ Argument IN: input stream."
                           thereis (not (char-equal c1 c2)))
                  (while (memq (literate-elisp-peek in) '(?\s ?\t))
                    (literate-elisp-next in)) ; skip tabs and spaces, return nil
-                 ;; …followed by `elisp' or `emacs-lisp'
+                 ;; followed by `elisp' or `emacs-lisp'
                  (cl-loop with lang = ; this inner loop grabs the language specifier
                           (cl-loop while (not (memq (literate-elisp-peek in) '(?\s ?\t ?\n)))
                                    with rtn
@@ -636,7 +642,7 @@ Argument FILE: target file"
       (save-buffer)
       (kill-current-buffer))))
 #+END_SRC
-
+* Release current library
 And when a new version of [[./literate-elisp.el]] can release from this file, 
 the following code should execute.
 #+BEGIN_SRC elisp :load no
@@ -683,6 +689,90 @@ Now let's check the elisp file to meet the requirement of [[https://github.com/m
 (with-current-buffer (find-file "literate-elisp.el")
   (checkdoc)
   (package-lint-current-buffer))
+#+END_SRC
+
+* How to insert code block in org file
+There are various ways to do it, for example you can extend the org mode's [[https://orgmode.org/manual/Easy-templates.html][Easy templates]] to fit your needs.
+
+I wrote a small Emacs interactive command so it can insert header arguments based on current [[https://orgmode.org/manual/Property-syntax.html][org properties]] automatically.
+Because properties can be inherited from parent sections or whole file scope, so different default value of header arguments can be used.
+
+Let's define a language list we want to support
+#+BEGIN_SRC elisp
+(defvar literate-elisp-language-candidates
+    '("lisp" "elisp" "axiom" "spad" "python" "C" "sh" "java" "js" "clojure" "clojurescript" "C++" "css"
+      "calc" "asymptote" "dot" "gnuplot" "ledger" "lilypond" "mscgen"
+      "octave" "oz" "plantuml" "R" "sass" "screen" "sql" "awk" "ditaa"
+      "haskell" "latex" "lisp" "matlab" "ocaml" "org" "perl" "ruby"
+      "scheme" "sqlite"))
+#+END_SRC
+
+Let's determine the current literate language before inserting a code block  
+#+BEGIN_SRC elisp
+(defun literate-elisp-get-language-to-insert ()
+  "Determine the current literate language before inserting a code block."
+  (or (org-entry-get (point) "literate-lang" t) ;get it from an org property at current point.
+      ;; get it from a candidates list.
+      (completing-read "Source Code Language: " literate-elisp-language-candidates)))
+#+END_SRC
+So you can define org property ~literate-lang~ in a file scope like this in the beginning of an org file
+#+BEGIN_EXAMPLE
+#+PROPERTY: literate-lang elisp
+#+END_EXAMPLE
+Or define it in a separate org section with a different default value
+#+BEGIN_EXAMPLE
+The is a section for another literate language
+:PROPERTIES:
+:literate-lang: lisp
+:END:
+#+END_EXAMPLE
+
+Let's define the valid load types for a code block
+#+BEGIN_SRC elisp
+(defvar literate-elisp-valid-load-types '("yes" "no" "test"))
+#+END_SRC
+
+Let's determine the current literate load type before inserting a code block  
+#+BEGIN_SRC elisp
+(defun literate-elisp-get-load-type-to-insert ()
+  "Determine the current literate load type before inserting a code block."
+  (or (org-entry-get (point) "literate-load" t) ;get it from an org property at current point.
+      (completing-read "Source Code Load Type: " literate-elisp-valid-load-types)))
+#+END_SRC
+So you can define org property ~literate-load~ in a file scope like this in the beginning of org file
+#+BEGIN_EXAMPLE
+#+PROPERTY: literate-load yes
+#+END_EXAMPLE
+Or define it in a separate org section with a different default value, for example for demo section
+#+BEGIN_EXAMPLE
+This is a demo section so don't load codes inside it
+#+PROPERTY:
+:PROPERTIES:
+:literate-load: no
+:END:
+#+END_EXAMPLE
+
+Now it's time to implement the insert command
+#+BEGIN_SRC elisp
+(defun literate-elisp-insert-org-src-block ()
+  "Insert the source code block in `org-mode'."
+  (interactive)
+  (let ((lang (literate-elisp-get-language-to-insert))
+        (load-type (literate-elisp-get-load-type-to-insert)))
+    (when lang
+      (insert (format "#+BEGIN_SRC %s" lang)
+              (if (or (null load-type) (string= "yes" load-type))
+                ""
+                (format " :load %s" load-type))
+              "\n")
+      (newline)
+      (insert "#+END_SRC\n")
+      (forward-line -2))))
+#+END_SRC
+
+You can bind this command to a global key in Emacs like this
+#+BEGIN_SRC elisp :load no
+(global-set-key [f2] 'literate-elisp-insert-org-src-block)
 #+END_SRC
 
 * Tests
