@@ -41,6 +41,13 @@
 
 (defvar literate-elisp-debug-p nil)
 
+(defun literate-elisp-debug (format-string &rest args)
+  "Print debug messages if switch is on.
+Argument FORMAT-STRING: same argument of Emacs function `message',
+Argument ARGS: same argument of Emacs function `message'."
+  (when literate-elisp-debug-p
+    (apply 'message format-string args)))
+
 (defvar literate-elisp-org-code-blocks-p nil)
 
 (defvar literate-elisp-begin-src-id "#+BEGIN_SRC")
@@ -143,25 +150,6 @@ Argument IN: input stream."
     (when (stringp rtn)
       (intern rtn))))
 
-(defmacro literate-elisp-fix-invalid-read-syntax (in &rest body)
-  "Fix read error `invalid-read-syntax'.
-Argument IN: input stream.
-Argument BODY: body codes."
-  (declare (indent 1)
-           (debug ([&or bufferp markerp symbolp stringp "t"] body)))
-  (let ((ex (make-symbol "ex")))
-    `(condition-case ,ex
-         ,@body
-       (invalid-read-syntax
-        (when literate-elisp-debug-p
-          (message "reach invalid read syntax %s at position %s"
-                   ,ex (literate-elisp-position in)))
-        (if (equal "#" (second ,ex))
-            ;; maybe this is #+end_src
-            (literate-elisp-read-after-sharpsign in)
-          ;; re-throw this signal because we don't know how to handle it.
-          (signal (car ,ex) (cdr ,ex)))))))
-
 (defun literate-elisp-ignore-white-space (in)
   "Skip white space characters.
 Argument IN: input stream."
@@ -169,7 +157,7 @@ Argument IN: input stream."
     ;; discard current character.
     (literate-elisp-next in)))
 
-(defvar literate-elisp-read (symbol-function 'read))
+(defvar literate-elisp-emacs-read (symbol-function 'read))
 
 (defun literate-elisp-read-datum (in)
   "Read and return a Lisp datum from the input stream.
@@ -177,24 +165,24 @@ Argument IN: input stream."
 
   (literate-elisp-ignore-white-space in)
   (let ((ch (literate-elisp-peek in)))
-    (when literate-elisp-debug-p
-      (message "literate-elisp-read-datum to character '%c'(position:%s)."
-               ch (literate-elisp-position in)))
+    (literate-elisp-debug "literate-elisp-read-datum to character '%c'(position:%s)."
+                          ch (literate-elisp-position in))
 
-    (literate-elisp-fix-invalid-read-syntax in
-      (cond
-        ((not ch)
-         (signal 'end-of-file nil))
-        ((and (not literate-elisp-org-code-blocks-p)
-              (not (eq ch ?\#)))
-         (let ((line (literate-elisp-read-until-end-of-line in)))
-           (when literate-elisp-debug-p
-             (message "ignore line %s" line)))
-         nil)
-        ((eq ch ?\#)
-         (literate-elisp-next in)
-         (literate-elisp-read-after-sharpsign in))
-        (t (funcall literate-elisp-read in))))))
+    (cond
+      ((not ch)
+       (signal 'end-of-file nil))
+      ((or (and (not literate-elisp-org-code-blocks-p)
+                (not (eq ch ?\#)))
+           (eq ch ?\;))
+       (let ((line (literate-elisp-read-until-end-of-line in)))
+         (literate-elisp-debug "ignore line %s" line))
+       nil)
+      ((eq ch ?\#)
+       (literate-elisp-next in)
+       (literate-elisp-read-after-sharpsign in))
+      (t
+       (literate-elisp-debug "enter into original Emacs read.")
+       (funcall literate-elisp-emacs-read in)))))
 
 (defun literate-elisp-read-after-sharpsign (in)
   "Read after #.
@@ -223,8 +211,7 @@ Argument IN: input stream."
            ;; if it is, read source block header arguments for this code block and check if it should be loaded.
            (cond ((literate-elisp-load-p (literate-elisp-get-load-option in))
                   ;; if it should be loaded, switch to elisp syntax context
-                  (when literate-elisp-debug-p
-                    (message "enter into a elisp code block"))
+                  (literate-elisp-debug "enter into a elisp code block")
                   (setf literate-elisp-org-code-blocks-p t)
                   nil)
                  (t
@@ -233,19 +220,17 @@ Argument IN: input stream."
         (t
         ;; 2. if it is inside an elisp syntax
          (let ((c (literate-elisp-next in)))
-           (when literate-elisp-debug-p
-             (message "found #%c inside a org block" c))
+           (literate-elisp-debug "found #%c inside a org block" c)
            (cl-case c
              ;; check if it is ~#+~, which has only legal meaning when it is equal `#+end_src'
              (?\+
               (let ((line (literate-elisp-read-until-end-of-line in)))
-                (when literate-elisp-debug-p
-                  (message "found org elisp end block:%s" line)))
+                (literate-elisp-debug "found org elisp end block:%s" line))
              ;; if it is, then switch to org mode syntax.
               (setf literate-elisp-org-code-blocks-p nil)
               nil)
              ;; if it is not, then use original elisp reader to read the following stream
-             (t (funcall literate-elisp-read in)))))))
+             (t (funcall literate-elisp-emacs-read in)))))))
 
 (defun literate-elisp-read-internal (&optional in)
   "A wrapper to follow the behavior of original read function.
@@ -320,8 +305,7 @@ Argument ARGS: the arguments to original advice function."
 
   (when (string-match "\\(\\.org\\.el\\)" (car args))
     (setf (car args) (replace-match ".org" t t (car args)))
-    (when literate-elisp-debug-p
-      (message "fix literate compiled file in find-library-name :%s" (car args))))
+    (literate-elisp-debug "fix literate compiled file in find-library-name :%s" (car args)))
   (apply orig-fun args))
 (advice-add 'find-library-name :around #'literate-elisp-find-library-name)
 
@@ -344,9 +328,9 @@ will be temporarily set to that of `literate-elisp-read-internal'
   `(cl-letf (((symbol-function 'read)
               (if ,test
                   (symbol-function 'literate-elisp-read-internal)
-                ;; `literate-elisp-read' holds the original function
+                ;; `literate-elisp-emacs-read' holds the original function
                 ;; definition for `read'.
-                literate-elisp-read)))
+                literate-elisp-emacs-read)))
      ,@body))
 
 (with-eval-after-load 'elisp-refs
@@ -399,8 +383,7 @@ Argument BUF: source buffer."
                         (string-equal (string-trim (downcase line)) "#+end_src"))
               do (loop for c across line
                        do (write-char c))
-                 (when literate-elisp-debug-p
-                   (message "tangle elisp line %s" line))
+                 (literate-elisp-debug "tangle elisp line %s" line)
                  (write-char ?\n)
                  (forward-line 1)))))
 
@@ -414,7 +397,7 @@ Argument FILE: target file"
   (let* ((source-buffer (find-file-noselect file))
          (target-buffer (find-file-noselect el-file))
          (org-path-name (concat (file-name-base file) "." (file-name-extension file)))
-         (literate-elisp-read 'literate-elisp-tangle-reader)
+         (literate-elisp-emacs-read 'literate-elisp-tangle-reader)
          (literate-elisp-test-p test-p)
          (literate-elisp-org-code-blocks-p nil))
     (with-current-buffer target-buffer
