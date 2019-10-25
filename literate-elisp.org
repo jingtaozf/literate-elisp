@@ -210,7 +210,7 @@ Argument IN: input stream."
 *** code block header argument ~load~
 There are a lot of different elisp codes occur in one org file, some for function implementation,
 some for demo, and some for test, so an [[https://orgmode.org/manual/Structure-of-code-blocks.html][org code block]] [[https://orgmode.org/manual/Code-block-specific-header-arguments.html#Code-block-specific-header-arguments][header argument]] ~load~ to decide to
-read them or not should define,and it has two meanings:
+read them or not should define,and it has the following meanings:
 - yes \\
   It means that current code block should load normally,
   it is the default mode when the header argument ~load~ is not provided.
