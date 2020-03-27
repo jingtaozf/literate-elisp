@@ -1,4 +1,4 @@
-;;; literate-elisp.el --- literate program to write elisp codes in org mode  -*- lexical-binding: t; -*-
+;;; literate-elisp.el --- A library to write Emacs Lisp codes in org mode  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2018-2019 Jingtao Xu
 
@@ -7,7 +7,7 @@
 ;; Version: 0.1
 ;; Keywords: lisp docs extensions tools
 ;; URL: https://github.com/jingtaozf/literate-elisp
-;; Package-Requires: ((cl-lib "0.6") (emacs "24.4"))
+;; Package-Requires: ((cl-lib "0.6") (emacs "26.1"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -137,7 +137,7 @@ Argument FLAG: flag symbol."
     (t nil)))
 
 (defun literate-elisp-read-header-arguments (arguments)
-  "Read org code block header arguments as an alist.
+  "Reading org code block header arguments as an alist.
 Argument ARGUMENTS: a string to hold the arguments."
   (org-babel-parse-header-arguments (string-trim arguments)))
 
@@ -187,7 +187,7 @@ Argument IN: input stream."
 (defun literate-elisp-read-after-sharpsign (in)
   "Read after #.
 Argument IN: input stream."
-  ;;     if it is not inside an elisp syntax
+  ;;     if it is not inside an Emacs Lisp syntax
   (cond ((not literate-elisp-org-code-blocks-p)
          ;; check if it is `#+begin_src'
          (if (or (cl-loop for i from 1 below (length literate-elisp-begin-src-id)
@@ -210,26 +210,26 @@ Argument IN: input stream."
                   nil)
            ;; if it is, read source block header arguments for this code block and check if it should be loaded.
            (cond ((literate-elisp-load-p (literate-elisp-get-load-option in))
-                  ;; if it should be loaded, switch to elisp syntax context
-                  (literate-elisp-debug "enter into a elisp code block")
+                  ;; if it should be loaded, switch to Emacs Lisp syntax context
+                  (literate-elisp-debug "enter into a Emacs Lisp code block")
                   (setf literate-elisp-org-code-blocks-p t)
                   nil)
                  (t
                   ;; if it should not be loaded, continue to use org syntax and ignore this line
                  nil))))
         (t
-        ;; 2. if it is inside an elisp syntax
+        ;; 2. if it is inside an Emacs Lisp syntax
          (let ((c (literate-elisp-next in)))
-           (literate-elisp-debug "found #%c inside a org block" c)
+           (literate-elisp-debug "found #%c inside an org block" c)
            (cl-case c
              ;; check if it is ~#+~, which has only legal meaning when it is equal `#+end_src'
              (?\+
               (let ((line (literate-elisp-read-until-end-of-line in)))
-                (literate-elisp-debug "found org elisp end block:%s" line))
+                (literate-elisp-debug "found org Emacs Lisp end block:%s" line))
              ;; if it is, then switch to org mode syntax.
               (setf literate-elisp-org-code-blocks-p nil)
               nil)
-             ;; if it is not, then use original elisp reader to read the following stream
+             ;; if it is not, then use original Emacs Lisp reader to read the following stream
              (t (funcall literate-elisp-emacs-read in)))))))
 
 (defun literate-elisp-read-internal (&optional in)
@@ -241,7 +241,7 @@ Argument IN: input stream."
              ;; if original read function return nil, just return it.
         if literate-elisp-org-code-blocks-p
           do (cl-return nil)
-             ;; if it reach end of stream.
+             ;; if it reaches end of stream.
         if (null (literate-elisp-peek in))
           do (cl-return nil)))
 
@@ -375,7 +375,7 @@ Argument BUF: source buffer."
         (when (not (string-blank-p
                     (buffer-substring (line-beginning-position)
                                       (point))))
-          ;; if reader still in last line,move it to next line.
+          ;; if reader still in last line, move it to next line.
           (forward-line 1))
 
         (loop for line = (buffer-substring-no-properties (line-beginning-position) (line-end-position))
@@ -383,7 +383,7 @@ Argument BUF: source buffer."
                         (string-equal (string-trim (downcase line)) "#+end_src"))
               do (loop for c across line
                        do (write-char c))
-                 (literate-elisp-debug "tangle elisp line %s" line)
+                 (literate-elisp-debug "tangle Emacs Lisp line %s" line)
                  (write-char ?\n)
                  (forward-line 1)))))
 
@@ -391,8 +391,12 @@ Argument BUF: source buffer."
                                  &key (el-file (concat (file-name-sans-extension file) ".el"))
                                 header tail
                                 test-p)
-  "Literate tangle
-Argument FILE: target file"
+  "Tangle org file to elisp file.
+Argument FILE: target file.
+Optional argument EL-FILE .
+Optional argument HEADER .
+Optional argument TAIL .
+Optional argument TEST-P ."
   (interactive)
   (let* ((source-buffer (find-file-noselect file))
          (target-buffer (find-file-noselect el-file))
