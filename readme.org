@@ -39,11 +39,11 @@ It extends the Emacs [[https://www.gnu.org/software/emacs/manual/html_node/elisp
 
 The implementation details of [[https://github.com/jingtaozf/literate-elisp][literate-elisp]] is in file [[./literate-elisp.org]] ([[./literate-elisp.pdf][pdf version]]).
 
-This library export an elisp function ~literate-elisp-load~ 
-and this function can load elisp codes in all elisp code blocks 
+This library export an Emacs Lisp function ~literate-elisp-load~ 
+and this function can load Emacs Lisp codes in all Emacs Lisp code blocks 
 surrounded by ~#+begin_src elisp~ and ~#+end_src~ in an org file directly.
 
-For example, if you have an org file and it contains such elisp code block:
+For example, if you have an org file and it contains such Emacs Lisp code block:
 #+BEGIN_EXAMPLE
    ,#+BEGIN_SRC elisp :load yes
    (defun test ()
@@ -56,38 +56,38 @@ Then you can load this org file like this:
 (load "~/projects/literate-elisp/literate-elisp.el")
 (literate-elisp-load "test.org")
 #+END_SRC
-Now the elisp function ~test~ is ready to use, 
+Now the Emacs Lisp function ~test~ is ready to use,
 and you can jump to the definition of ~test~ in the org file by using Emacs library [[https://github.com/emacs-mirror/emacs/blob/master/lisp/emacs-lisp/find-func.el][find-func]] directly
-without tangling them to an elisp file(.el).
+without tangling them to an Emacs Lisp file(.el).
 
-You can also open an org file by [[https://polymode.github.io/][polymode]] when edit,which will switch elisp code block to Emacs elisp mode.
+You can also open an org file by [[https://polymode.github.io/][polymode]] when edit, which will switch Emacs Lisp code block to Emacs Lisp mode.
 
-So you will have a perfect literate environment which can write elisp codes in an org file, and
-load it directly without tangling an org file to an elisp file.
+So you will have a perfect literate environment which can write Emacs Lisp codes in an org file, and
+load it directly without tangling an org file to an Emacs Lisp file.
 Emacs lisp's source code editing and navigation feature work well to this org file.
 
 This library contains the following files:
 - [[./literate-elisp.org]] \\ 
-  The implementation and documentation of literate elisp reader.
+  The implementation and documentation of literate Emacs Lisp reader.
 - [[./literate-elisp.el]] \\
-  The tangled codes of literate elisp reader, generated from [[./literate-elisp.org]].
+  The tangled codes of literate Emacs Lisp reader, generated from [[./literate-elisp.org]].
 - [[./literate-elisp.pdf]] \\
   The weaved documentation, generated from [[./literate-elisp.org]] by org mode's [[https://orgmode.org/manual/Triggering-publication.html#Triggering-publication][publish feature]].
 - [[./readme.org]] \\
-  This file contains introduction and demo codes for how to do literate elisp in an org file.
+  This file contains introduction and demo codes for how to do literate Emacs Lisp in an org file.
 - [[./.travis.yml]] \\
   The config file used by Web service [[https://travis-ci.com/jingtaozf/literate-lisp][travis ci]] to test this library.
 
 * Tutorial
 ** install Polymode in Emacs
-The org file can open as [[https://polymode.github.io/][polymode]],the following Emacs lisp scripts should add in .emacs
+The org file can open as [[https://polymode.github.io/][polymode]],the following Emacs lisp scripts should add in ~.emacs~.
 #+BEGIN_SRC elisp :load no
 (use-package poly-org
     :ensure t)
 #+END_SRC
 ** install literate-elisp
 ~literate-lisp~ is available on the two major ~package.el~ community maintained repos - [[https://stable.melpa.org/#/literate-elisp][MELPA Stable]] and [[https://melpa.org/#/literate-elisp][MELPA]].
-You can install ~literate-lisp~ , or more commonly a specific ~literate-lisp~, interactively
+You can install ~literate-elisp~, or more commonly a specific ~literate-elisp~, interactively
 #+BEGIN_SRC text
 M-x package-install [RET] literate-elisp [RET]
 #+END_SRC
@@ -119,9 +119,9 @@ For example, This org file can be compiled with the following code.
 Now the target file ~readme.org.elc~ is ready to use.
 
 ** a new code block header argument ~load~
-There are a lot of different elisp codes occur in one org file, some for function implementation,
+There are a lot of different Emacs Lisp codes occur in one org file, some for function implementation,
 some for demo, and some for test, so an [[https://orgmode.org/manual/Structure-of-code-blocks.html][org code block]] [[https://orgmode.org/manual/Code-block-specific-header-arguments.html#Code-block-specific-header-arguments][header argument]] ~load~ to decide to
-read them or not should define,and it has the following meanings:
+read them or not should define, and it has the following meanings:
 - yes \\
   It means that current code block should load normally, 
   it is the default mode when the header argument ~load~ is not provided.
@@ -133,7 +133,7 @@ read them or not should define,and it has the following meanings:
   #+END_EXAMPLE
   
 - no \\
-  It means that current code block should ignore by elisp reader.
+  It means that current code block should ignore by Emacs Lisp reader.
   #+BEGIN_EXAMPLE
    ,#+BEGIN_SRC elisp :load no
    (defun a-function-to-ignore ()
@@ -162,7 +162,7 @@ We will use some common lisp macros, so let's load this library now.
 #+END_SRC
 
 Let's implement ~if-bind~ firstly,
-which can bind the value of ~if~ condition form to any specified variable..
+which can bind the value of ~if~ condition form to any specified variable.
 #+BEGIN_SRC elisp
 (defmacro if-bind (var test &rest then/else)
   "Anaphoric IF control structure.
@@ -193,7 +193,7 @@ You can use it like this
     (message "it is %s" it))
 #+END_SRC
 After loading this org file by function ~literate-elisp-load~,
-you can use macro ~aif~ directly in your other elisp files.
+you can use macro ~aif~ directly in your other Emacs Lisp files.
 
 * a demo Emacs configuration 
 Of course the one purpose of this library is to write Emacs configuration directly in an org file. \\
