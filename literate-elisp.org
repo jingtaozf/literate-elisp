@@ -29,7 +29,7 @@
 
 * Introduction
 
-An Emacs library or configuration file can write in org mode then tangle to an elisp file later,
+An Emacs library or configuration file can write in [[https://orgmode.org/manual/Working-with-source-code.html#Working-with-source-code][org mode]] then tangle to an elisp file later,
 here is one example: [[https://github.com/larstvei/dot-emacs][Emacs configurations written in Org mode]] .
 
 But What if I want to write a library or a configuration file in org file and load it to Emacs directly?
@@ -433,7 +433,7 @@ If you want to literate load file in batch mode, here it is:
   "Load the Lisp file named FILE.
 Argument FILE: target file path."
   ;; This is a case where .elc and .so/.dll make a lot of sense.
-  (interactive (list (read-file-name "Load org file: " nil nil 'lambda)))
+  (interactive (list (read-file-name "Load org file: ")))
   (literate-elisp-load (expand-file-name file)))
 #+END_SRC
 

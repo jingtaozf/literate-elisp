@@ -272,7 +272,7 @@ Argument PATH: target file to load."
   "Load the Lisp file named FILE.
 Argument FILE: target file path."
   ;; This is a case where .elc and .so/.dll make a lot of sense.
-  (interactive (list (read-file-name "Load org file: " nil nil 'lambda)))
+  (interactive (list (read-file-name "Load org file: ")))
   (literate-elisp-load (expand-file-name file)))
 
 (defun literate-elisp-byte-compile-file (file &optional load)

@@ -35,7 +35,7 @@
 * Introduction
 [[https://github.com/jingtaozf/literate-elisp][literate-elisp]] is an Emacs lisp library to provide an easy way to use [[http://www.literateprogramming.com/][literal programming]] in Emacs lisp.
 
-It extends the Emacs [[https://www.gnu.org/software/emacs/manual/html_node/elisp/How-Programs-Do-Loading.html#How-Programs-Do-Loading][load]] mechanism so Emacs can load org files as lisp source files directly.
+It extends the Emacs [[https://www.gnu.org/software/emacs/manual/html_node/elisp/How-Programs-Do-Loading.html#How-Programs-Do-Loading][load]] mechanism so Emacs can load [[https://orgmode.org/manual/Working-with-source-code.html#Working-with-source-code][org files]] as lisp source files directly.
 
 The implementation details of [[https://github.com/jingtaozf/literate-elisp][literate-elisp]] is in file [[./literate-elisp.org]] ([[./literate-elisp.pdf][pdf version]]).
 
