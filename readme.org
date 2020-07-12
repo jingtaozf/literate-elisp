@@ -26,6 +26,7 @@
 - [[#a-demo-emacs-configuration][a demo Emacs configuration]]
   - [[#a-demo-configuration][a demo configuration]]
   - [[#load-this-org-file-in-emacs][load this org file in .emacs]]
+  - [[#packages-written-by-literate-elisp][packages written by literate-elisp]]
 - [[#test][Test]]
   - [[#introduction-1][Introduction]]
   - [[#test-macro-aif][test macro aif]]
@@ -210,6 +211,8 @@ Then to load routines and configurations in this org file, I add the following c
 (load "~/projects/literate-elisp/literate-elisp.el")
 (literate-elisp-load "~/projects/literate-elisp/readme.org")
 #+END_SRC
+** packages written by literate-elisp
+- [[https://github.com/jingtao-net/helm-q.el/blob/master/helm-q.org][helm-q]] Manage remote q sessions with Helm and q-mode
 * Test
 ** Introduction
 We use [[https://www.gnu.org/software/emacs/manual/html_node/ert/Introduction.html#Introduction][ERT]] library to define and run tests.
