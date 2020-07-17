@@ -562,6 +562,8 @@ variable ~literate-elisp-read~.
 
 This reader will read codes in a code block without changing them until it reach ~#+end_src~.
 
+This feature supports the additional header argument =load= comparing with the function [[https://orgmode.org/manual/Extracting-Source-Code.html][org-babel-tangle]] in org mode.
+
 label:literate-elisp-tangle-reader
 #+BEGIN_SRC elisp
 (defun literate-elisp-tangle-reader (&optional buf)
