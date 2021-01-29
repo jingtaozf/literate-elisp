@@ -7,7 +7,7 @@
 ;; Version: 0.1
 ;; Keywords: lisp docs extensions tools
 ;; URL: https://github.com/jingtaozf/literate-elisp
-;; Package-Requires: ((cl-lib "0.6") (emacs "26.1"))
+;; Package-Requires: ((emacs "26.1"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -333,29 +333,31 @@ will be temporarily set to that of `literate-elisp-read-internal'
                 literate-elisp-emacs-read)))
      ,@body))
 
-(with-eval-after-load 'elisp-refs
-  (defun literate-elisp-refs--read-all-buffer-forms (orig-fun buffer)
-    ":around advice for `elisp-refs--read-all-buffer-forms',
-to make the `literate-elisp' package comparible with `elisp-refs'."
-    (literate-elisp--replace-read-maybe
-        (literate-elisp--file-is-org-p
-         (with-current-buffer buffer elisp-refs--path))
-      (funcall orig-fun buffer)))
-  (advice-add 'elisp-refs--read-all-buffer-forms :around #'literate-elisp-refs--read-all-buffer-forms)
+(defun literate-elisp-refs--read-all-buffer-forms (orig-fun buffer)
+  "Around advice to make `literate-elisp' package comparible with `elisp-refs'.
+Argument ORIG-FUN: the original function.
+Argument BUFFER: the buffer."
+  (literate-elisp--replace-read-maybe
+      (literate-elisp--file-is-org-p
+       (with-current-buffer buffer elisp-refs--path))
+    (funcall orig-fun buffer)))
+(eval-after-load "elisp-refs"
+  '(advice-add 'elisp-refs--read-all-buffer-forms :around #'literate-elisp-refs--read-all-buffer-forms))
 
-  (defun literate-elisp-refs--loaded-paths (rtn)
-    ":filter-return advice for `elisp-refs--loaded-paths',
-to prevent it from ignoring Org files."
-    (append rtn
-            (delete-dups
-             (cl-loop for file in (mapcar #'car load-history)
-                      if (string-suffix-p ".org" file)
-                         collect file
-                      ;; handle compiled literate-elisp files
-                      else if (and (string-suffix-p ".org.elc" file)
-                                   (file-exists-p (substring file 0 -4)))
-                         collect (substring file 0 -4)))))
-  (advice-add 'elisp-refs--loaded-paths :filter-return #'literate-elisp-refs--loaded-paths))
+(defun literate-elisp-refs--loaded-paths (rtn)
+  "Filter return advice to prevent it from ignoring Org files.
+Argument RTN: rtn."
+  (append rtn
+          (delete-dups
+           (cl-loop for file in (mapcar #'car load-history)
+                    if (string-suffix-p ".org" file)
+                    collect file
+                    ;; handle compiled literate-elisp files
+                    else if (and (string-suffix-p ".org.elc" file)
+                                 (file-exists-p (substring file 0 -4)))
+                    collect (substring file 0 -4)))))
+(eval-after-load "elisp-refs"
+  '(advice-add 'elisp-refs--loaded-paths :filter-return #'literate-elisp-refs--loaded-paths))
 
   (with-eval-after-load 'helpful
     (defun literate-elisp-helpful--find-by-macroexpanding (orig-fun &rest args)
@@ -430,6 +432,20 @@ Optional argument TEST-P ."
       (save-buffer)
       (kill-current-buffer))))
 
+(defvar literate-elisp-default-header-arguments-to-insert
+    '((:name :load :property "literate-load" :desc "Source Code Load Type"
+       :omit-value "yes"
+       :candidates ("yes" "no" "test"))))
+
+(defun literate-elisp-get-header-argument-to-insert (argument-property-name argument-description argument-candidates)
+  "Determine the current header argument before inserting a code block.
+Argument ARGUMENT-PROPERTY-NAME the org property name of the header argument.
+Argument ARGUMENT-DESCRIPTION the description of the header argument.
+Argument ARGUMENT-CANDIDATES the candidates of the header argument."
+  (or (org-entry-get (point) argument-property-name t) ;get it from an org property at current point.
+      ;; get it from a candidates list.
+      (completing-read argument-description argument-candidates)))
+
 (defvar literate-elisp-language-candidates
     '("lisp" "elisp" "axiom" "spad" "python" "C" "sh" "java" "js" "clojure" "clojurescript" "C++" "css"
       "calc" "asymptote" "dot" "gnuplot" "ledger" "lilypond" "mscgen"
@@ -439,28 +455,32 @@ Optional argument TEST-P ."
 
 (defun literate-elisp-get-language-to-insert ()
   "Determine the current literate language before inserting a code block."
-  (or (org-entry-get (point) "literate-lang" t) ;get it from an org property at current point.
-      ;; get it from a candidates list.
-      (completing-read "Source Code Language: " literate-elisp-language-candidates)))
+  (literate-elisp-get-header-argument-to-insert
+   "literate-lang" "Source Code Language: "
+   literate-elisp-language-candidates))
 
-(defvar literate-elisp-valid-load-types '("yes" "no" "test"))
-
-(defun literate-elisp-get-load-type-to-insert ()
-  "Determine the current literate load type before inserting a code block."
-  (or (org-entry-get (point) "literate-load" t) ;get it from an org property at current point.
-      (completing-read "Source Code Load Type: " literate-elisp-valid-load-types)))
+(defun literate-elisp-additional-header-to-insert ()
+  "Return the additional header arguments string."
+  (org-entry-get (point) "literate-header-arguments" t))
 
 (defun literate-elisp-insert-org-src-block ()
   "Insert the source code block in `org-mode'."
   (interactive)
-  (let ((lang (literate-elisp-get-language-to-insert))
-        (load-type (literate-elisp-get-load-type-to-insert)))
+  (let ((lang (literate-elisp-get-language-to-insert)))
     (when lang
-      (insert (format "#+BEGIN_SRC %s" lang)
-              (if (or (null load-type) (string= "yes" load-type))
-                ""
-                (format " :load %s" load-type))
-              "\n")
+      (insert (format "#+BEGIN_SRC %s" lang))
+      (loop for argument-spec in (literate-elisp-header-arguments-to-insert)
+            for name = (plist-get argument-spec :name)
+            for value = (literate-elisp-get-header-argument-to-insert 
+                                 (plist-get argument-spec :property)
+                                 (plist-get argument-spec :desc)
+                                 (plist-get argument-spec :candidates))
+            if (and value (not (equal value (plist-get argument-spec :omit-value))))
+              do (insert (format " %s %s" name value)))
+      (let ((additional-arguments (literate-elisp-additional-header-to-insert)))
+        (when additional-arguments
+          (insert " " additional-arguments)))
+      (newline)
       (newline)
       (insert "#+END_SRC\n")
       (forward-line -2))))

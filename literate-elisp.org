@@ -515,29 +515,31 @@ will be temporarily set to that of `literate-elisp-read-internal'
 Then, we implement support for other libraries. These generally take the form of ~:around~ advice to functions that use ~read~ in some way (or which call functions that use ~read~), so in those cases we will want to use the ~literate-elisp--replace-read-maybe~ macro to change ~read~'s function definition when necessary.
 *** support for Emacs Lisp-Refs
 #+BEGIN_SRC elisp
-(with-eval-after-load 'elisp-refs
-  (defun literate-elisp-refs--read-all-buffer-forms (orig-fun buffer)
-    ":around advice for `elisp-refs--read-all-buffer-forms',
-to make the `literate-elisp' package comparible with `elisp-refs'."
-    (literate-elisp--replace-read-maybe
-        (literate-elisp--file-is-org-p
-         (with-current-buffer buffer elisp-refs--path))
-      (funcall orig-fun buffer)))
-  (advice-add 'elisp-refs--read-all-buffer-forms :around #'literate-elisp-refs--read-all-buffer-forms)
+(defun literate-elisp-refs--read-all-buffer-forms (orig-fun buffer)
+  "Around advice to make `literate-elisp' package comparible with `elisp-refs'.
+Argument ORIG-FUN: the original function.
+Argument BUFFER: the buffer."
+  (literate-elisp--replace-read-maybe
+      (literate-elisp--file-is-org-p
+       (with-current-buffer buffer elisp-refs--path))
+    (funcall orig-fun buffer)))
+(eval-after-load "elisp-refs"
+  '(advice-add 'elisp-refs--read-all-buffer-forms :around #'literate-elisp-refs--read-all-buffer-forms))
 
-  (defun literate-elisp-refs--loaded-paths (rtn)
-    ":filter-return advice for `elisp-refs--loaded-paths',
-to prevent it from ignoring Org files."
-    (append rtn
-            (delete-dups
-             (cl-loop for file in (mapcar #'car load-history)
-                      if (string-suffix-p ".org" file)
-                         collect file
-                      ;; handle compiled literate-elisp files
-                      else if (and (string-suffix-p ".org.elc" file)
-                                   (file-exists-p (substring file 0 -4)))
-                         collect (substring file 0 -4)))))
-  (advice-add 'elisp-refs--loaded-paths :filter-return #'literate-elisp-refs--loaded-paths))
+(defun literate-elisp-refs--loaded-paths (rtn)
+  "Filter return advice to prevent it from ignoring Org files.
+Argument RTN: rtn."
+  (append rtn
+          (delete-dups
+           (cl-loop for file in (mapcar #'car load-history)
+                    if (string-suffix-p ".org" file)
+                    collect file
+                    ;; handle compiled literate-elisp files
+                    else if (and (string-suffix-p ".org.elc" file)
+                                 (file-exists-p (substring file 0 -4)))
+                    collect (substring file 0 -4)))))
+(eval-after-load "elisp-refs"
+  '(advice-add 'elisp-refs--loaded-paths :filter-return #'literate-elisp-refs--loaded-paths))
 #+END_SRC
 *** support for Helpful
 The above support for ~elisp-refs~ does most of the necessary work for supporting ~helpful~; the following is for the edge case of when ~helpful~ starts expanding macros in a source file to find a definition.
@@ -647,7 +649,7 @@ the following code should execute.
 ;; Version: 0.1
 ;; Keywords: lisp docs extensions tools
 ;; URL: https://github.com/jingtaozf/literate-elisp
-;; Package-Requires: ((cl-lib \"0.6\") (emacs \"26.1\"))
+;; Package-Requires: ((emacs \"26.1\"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -675,7 +677,7 @@ The head and tail lines require by [[https://github.com/melpa/melpa/blob/master/
 
 Now let's check the Emacs Lisp file to meet the requirement of [[https://github.com/melpa/melpa/blob/master/CONTRIBUTING.org][MELPA]].
 #+BEGIN_SRC elisp :load no
-(require 'package-lint)
+(use-package package-lint)
 (with-current-buffer (find-file "literate-elisp.el")
   (checkdoc)
   (package-lint-current-buffer))
@@ -685,7 +687,27 @@ Now let's check the Emacs Lisp file to meet the requirement of [[https://github.
 There are various ways to do it, for example you can extend the org mode's [[https://orgmode.org/manual/Easy-templates.html][Easy templates]] to fit your needs.
 
 I wrote a small Emacs interactive command so it can insert header arguments based on current [[https://orgmode.org/manual/Property-syntax.html][org properties]] automatically.
-Because properties can be inherited from parent sections or whole file scope, so different default value of header arguments can be used.
+Because properties can be inherited from parent sections or whole file scope, so different default value of header arguments can be used,
+in a file scope, or a sub section scope.
+
+The default header arguments to be inserted is specified in a custom variable.
+#+BEGIN_SRC elisp
+(defvar literate-elisp-default-header-arguments-to-insert
+    '((:name :load :property "literate-load" :desc "Source Code Load Type"
+       :omit-value "yes"
+       :candidates ("yes" "no" "test"))))
+#+END_SRC
+We try to get the header argument based on current org property or user input.
+#+BEGIN_SRC elisp
+(defun literate-elisp-get-header-argument-to-insert (argument-property-name argument-description argument-candidates)
+  "Determine the current header argument before inserting a code block.
+Argument ARGUMENT-PROPERTY-NAME the org property name of the header argument.
+Argument ARGUMENT-DESCRIPTION the description of the header argument.
+Argument ARGUMENT-CANDIDATES the candidates of the header argument."
+  (or (org-entry-get (point) argument-property-name t) ;get it from an org property at current point.
+      ;; get it from a candidates list.
+      (completing-read argument-description argument-candidates)))
+#+END_SRC
 
 Let's define a language list we want to support
 #+BEGIN_SRC elisp
@@ -696,15 +718,15 @@ Let's define a language list we want to support
       "haskell" "latex" "lisp" "matlab" "ocaml" "org" "perl" "ruby"
       "scheme" "sqlite"))
 #+END_SRC
-
 Let's determine the current literate language before inserting a code block
 #+BEGIN_SRC elisp
 (defun literate-elisp-get-language-to-insert ()
   "Determine the current literate language before inserting a code block."
-  (or (org-entry-get (point) "literate-lang" t) ;get it from an org property at current point.
-      ;; get it from a candidates list.
-      (completing-read "Source Code Language: " literate-elisp-language-candidates)))
+  (literate-elisp-get-header-argument-to-insert
+   "literate-lang" "Source Code Language: "
+   literate-elisp-language-candidates))
 #+END_SRC
+
 So you can define org property ~literate-lang~ in a file scope like this in the beginning of an org file
 #+BEGIN_EXAMPLE
 #+PROPERTY: literate-lang elisp
@@ -717,19 +739,7 @@ This is a section for another literate language
 :END:
 #+END_EXAMPLE
 
-Let's define the valid load types for a code block
-#+BEGIN_SRC elisp
-(defvar literate-elisp-valid-load-types '("yes" "no" "test"))
-#+END_SRC
-
-Let's determine the current literate load type before inserting a code block
-#+BEGIN_SRC elisp
-(defun literate-elisp-get-load-type-to-insert ()
-  "Determine the current literate load type before inserting a code block."
-  (or (org-entry-get (point) "literate-load" t) ;get it from an org property at current point.
-      (completing-read "Source Code Load Type: " literate-elisp-valid-load-types)))
-#+END_SRC
-So you can define org property ~literate-load~ in a file scope like this in the beginning of org file
+And you can also define org property ~literate-load~ in a file scope like this in the beginning of org file
 #+BEGIN_EXAMPLE
 #+PROPERTY: literate-load yes
 #+END_EXAMPLE
@@ -742,19 +752,33 @@ This is a demo section so don't load codes inside it
 :END:
 #+END_EXAMPLE
 
+You can also specify additional header arguments to insert for current org file in an org property =literate-header-arguments=.
+#+BEGIN_SRC elisp
+(defun literate-elisp-additional-header-to-insert ()
+  "Return the additional header arguments string."
+  (org-entry-get (point) "literate-header-arguments" t))
+#+END_SRC
+
 Now it's time to implement the insert command
 #+BEGIN_SRC elisp
 (defun literate-elisp-insert-org-src-block ()
   "Insert the source code block in `org-mode'."
   (interactive)
-  (let ((lang (literate-elisp-get-language-to-insert))
-        (load-type (literate-elisp-get-load-type-to-insert)))
+  (let ((lang (literate-elisp-get-language-to-insert)))
     (when lang
-      (insert (format "#+BEGIN_SRC %s" lang)
-              (if (or (null load-type) (string= "yes" load-type))
-                ""
-                (format " :load %s" load-type))
-              "\n")
+      (insert (format "#+BEGIN_SRC %s" lang))
+      (loop for argument-spec in (literate-elisp-header-arguments-to-insert)
+            for name = (plist-get argument-spec :name)
+            for value = (literate-elisp-get-header-argument-to-insert 
+                                 (plist-get argument-spec :property)
+                                 (plist-get argument-spec :desc)
+                                 (plist-get argument-spec :candidates))
+            if (and value (not (equal value (plist-get argument-spec :omit-value))))
+              do (insert (format " %s %s" name value)))
+      (let ((additional-arguments (literate-elisp-additional-header-to-insert)))
+        (when additional-arguments
+          (insert " " additional-arguments)))
+      (newline)
       (newline)
       (insert "#+END_SRC\n")
       (forward-line -2))))
