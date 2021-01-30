@@ -54,12 +54,6 @@ Argument ARGS: same argument of Emacs function `message'."
 (defvar literate-elisp-end-src-id "#+END_SRC")
 (defvar literate-elisp-lang-ids (list "elisp" "emacs-lisp"))
 
-(unless (fboundp 'alist-get)
-  (defun alist-get (key alist)
-    "A minimal definition of `alist-get', for compatibility with Emacs < 25.1"
-    (let ((x (assq key alist)))
-      (when x (cdr x)))))
-
 (defun literate-elisp-peek (in)
   "Return the next character without dropping it from the stream.
 Argument IN: input stream."
@@ -144,9 +138,9 @@ Argument ARGUMENTS: a string to hold the arguments."
 (defun literate-elisp-get-load-option (in)
   "Read load option from input stream.
 Argument IN: input stream."
-  (let ((rtn (alist-get :load
+  (let ((rtn (cdr (assq :load
                         (literate-elisp-read-header-arguments
-                         (literate-elisp-read-until-end-of-line in)))))
+                         (literate-elisp-read-until-end-of-line in))))))
     (when (stringp rtn)
       (intern rtn))))
 
@@ -469,7 +463,7 @@ Argument ARGUMENT-CANDIDATES the candidates of the header argument."
   (let ((lang (literate-elisp-get-language-to-insert)))
     (when lang
       (insert (format "#+BEGIN_SRC %s" lang))
-      (loop for argument-spec in (literate-elisp-header-arguments-to-insert)
+      (loop for argument-spec in literate-elisp-default-header-arguments-to-insert
             for name = (plist-get argument-spec :name)
             for value = (literate-elisp-get-header-argument-to-insert 
                                  (plist-get argument-spec :property)

@@ -107,15 +107,6 @@ And the code block begin/end identifiers:
 (defvar literate-elisp-lang-ids (list "elisp" "emacs-lisp"))
 #+END_SRC
 
-This library uses ~alist-get~, which was first implemented in Emacs 25.1.
-#+BEGIN_SRC elisp
-(unless (fboundp 'alist-get)
-  (defun alist-get (key alist)
-    "A minimal definition of `alist-get', for compatibility with Emacs < 25.1"
-    (let ((x (assq key alist)))
-      (when x (cdr x)))))
-#+END_SRC
-
 ** stream read functions
 To give us the ability of syntax analysis,
 stream read actions such as ~peek a character~ or ~read and drop next character~ should get implemented.
@@ -248,9 +239,9 @@ Let's define a convenient function to get load flag from the input stream.
 (defun literate-elisp-get-load-option (in)
   "Read load option from input stream.
 Argument IN: input stream."
-  (let ((rtn (alist-get :load
+  (let ((rtn (cdr (assq :load
                         (literate-elisp-read-header-arguments
-                         (literate-elisp-read-until-end-of-line in)))))
+                         (literate-elisp-read-until-end-of-line in))))))
     (when (stringp rtn)
       (intern rtn))))
 #+END_SRC
@@ -767,7 +758,7 @@ Now it's time to implement the insert command
   (let ((lang (literate-elisp-get-language-to-insert)))
     (when lang
       (insert (format "#+BEGIN_SRC %s" lang))
-      (loop for argument-spec in (literate-elisp-header-arguments-to-insert)
+      (loop for argument-spec in literate-elisp-default-header-arguments-to-insert
             for name = (plist-get argument-spec :name)
             for value = (literate-elisp-get-header-argument-to-insert 
                                  (plist-get argument-spec :property)
