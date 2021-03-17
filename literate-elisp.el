@@ -1,4 +1,4 @@
-;;; literate-elisp.el --- A library to write Emacs Lisp codes in org mode  -*- lexical-binding: t; -*-
+;;; literate-elisp.el --- load Emacs Lisp code blocks from Org files  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2018-2019 Jingtao Xu
 
@@ -42,7 +42,7 @@
 (defvar literate-elisp-debug-p nil)
 
 (defun literate-elisp-debug (format-string &rest args)
-  "Print debug messages if switch is on.
+  "Print debug messages if `literate-elisp-debug-p' is non-nil.
 Argument FORMAT-STRING: same argument of Emacs function `message',
 Argument ARGS: same argument of Emacs function `message'."
   (when literate-elisp-debug-p
@@ -122,7 +122,7 @@ Argument IN: input stream."
 (defvar literate-elisp-test-p nil)
 
 (defun literate-elisp-load-p (flag)
-  "Load current elisp code block or not.
+  "Return non-nil if the current elisp code block should be loaded.
 Argument FLAG: flag symbol."
   (cl-case flag
     ((yes nil) t)
@@ -220,7 +220,7 @@ Argument IN: input stream."
              (?\+
               (let ((line (literate-elisp-read-until-end-of-line in)))
                 (literate-elisp-debug "found org Emacs Lisp end block:%s" line))
-             ;; if it is, then switch to org mode syntax.
+             ;; if it is, then switch to Org mode syntax.
               (setf literate-elisp-org-code-blocks-p nil)
               nil)
              ;; if it is not, then use original Emacs Lisp reader to read the following stream
@@ -364,7 +364,7 @@ Argument RTN: rtn."
     (advice-add 'helpful--find-by-macroexpanding :around #'literate-elisp-helpful--find-by-macroexpanding))
 
 (defun literate-elisp-tangle-reader (&optional buf)
-  "Tangling codes in one code block.
+  "Tangling code in one code block.
 Argument BUF: source buffer."
   (with-output-to-string
       (with-current-buffer buf
@@ -433,10 +433,10 @@ Optional argument TEST-P ."
 
 (defun literate-elisp-get-header-argument-to-insert (argument-property-name argument-description argument-candidates)
   "Determine the current header argument before inserting a code block.
-Argument ARGUMENT-PROPERTY-NAME the org property name of the header argument.
+Argument ARGUMENT-PROPERTY-NAME the Org property name of the header argument.
 Argument ARGUMENT-DESCRIPTION the description of the header argument.
 Argument ARGUMENT-CANDIDATES the candidates of the header argument."
-  (or (org-entry-get (point) argument-property-name t) ;get it from an org property at current point.
+  (or (org-entry-get (point) argument-property-name t) ;get it from an Org property at current point.
       ;; get it from a candidates list.
       (completing-read argument-description argument-candidates)))
 
@@ -465,7 +465,7 @@ Argument ARGUMENT-CANDIDATES the candidates of the header argument."
       (insert (format "#+BEGIN_SRC %s" lang))
       (loop for argument-spec in literate-elisp-default-header-arguments-to-insert
             for name = (plist-get argument-spec :name)
-            for value = (literate-elisp-get-header-argument-to-insert 
+            for value = (literate-elisp-get-header-argument-to-insert
                                  (plist-get argument-spec :property)
                                  (plist-get argument-spec :desc)
                                  (plist-get argument-spec :candidates))
