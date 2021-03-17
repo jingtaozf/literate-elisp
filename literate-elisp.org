@@ -1,6 +1,6 @@
 # -*- encoding:utf-8 Mode: POLY-ORG; org-src-preserve-indentation: t; -*- ---
 #+TITLE:  Emacs Lisp literate library
-#+SubTitle: a literate programming tool to write Emacs lisp codes in org mode.
+#+SubTitle: a literate programming tool to write Emacs Lisp code in Org mode.
 #+OPTIONS: toc:2
 #+Startup: noindent
 #+LATEX_HEADER: % copied from lstlang1.sty, to add new language support to Emacs Lisp.
@@ -16,7 +16,7 @@
 - [[#implementation][Implementation]]
   - [[#preparation][Preparation]]
   - [[#stream-read-functions][stream read functions]]
-  - [[#handle-org-mode-syntax][handle org mode syntax]]
+  - [[#handle-org-mode-syntax][handle Org mode syntax]]
   - [[#loadcompile-org-file-with-new-syntax][load/compile org file with new syntax]]
   - [[#compatibility-with-other-libraries][compatibility with other libraries]]
   - [[#function-to-tangle-org-file-to-emacs-lisp-file][function to tangle org file to Emacs Lisp file]]
@@ -29,19 +29,22 @@
 
 * Introduction
 
-An Emacs library or configuration file can write in org mode then tangle to an Emacs Lisp file later,
-here is one example: [[https://github.com/larstvei/dot-emacs][Emacs configurations written in Org mode]].
+An Emacs library or configuration file can be written in Org mode,
+then tangled to an Emacs Lisp file later, here is an example: [[https://github.com/larstvei/dot-emacs][Emacs
+configurations written in Org mode]].
 
-But What if I want to write a library or a configuration file in org file and load it to Emacs directly?
-If it can, then we will have a uniform development environment without keeping multiple copies
-of codes. Furthermore, we can jump to the Emacs Lisp definition in an org file directly when required.
-That will be a convenient way for our daily development.
+But what if you could load the Org file in Emacs directly? You get a
+uniform development environment without dealing with multiple copies
+of code. Furthermore, you can jump to the Emacs Lisp definition in the
+Org file directly when required. That will be convenient for everyday
+development.
 
-So is this library, which extends the Emacs [[https://www.gnu.org/software/emacs/manual/html_node/elisp/How-Programs-Do-Loading.html#How-Programs-Do-Loading][load]] mechanism so Emacs can load org files as lisp source files directly.
+Hence this library, which extends the Emacs [[https://www.gnu.org/software/emacs/manual/html_node/elisp/How-Programs-Do-Loading.html#How-Programs-Do-Loading][load]] mechanism so Emacs
+can load Org files directly.
 
-* How to do it?
-In org mode, the Emacs lisp codes surround by lines between ~#+begin_src elisp~ and ~#+end_src~
-(see [[https://orgmode.org/manual/Literal-examples.html][org manual]]).
+* How it works
+In Org mode, Emacs Lisp code is surrounded by lines between
+~#+begin_src elisp~ and ~#+end_src~ (see [[https://orgmode.org/manual/Literal-examples.html][org manual]]).
 
 #+BEGIN_EXAMPLE
    ,#+BEGIN_SRC elisp :load no
@@ -49,44 +52,48 @@ In org mode, the Emacs lisp codes surround by lines between ~#+begin_src elisp~ 
    ,#+END_SRC
 #+END_EXAMPLE
 
-So to let Emacs lisp can read an org file directly, all lines out of surrounding
-by ~#+begin_src elisp~ and ~#+end_src~ should mean nothing,
-and even codes surrounding by them should mean nothing
-if the [[https://orgmode.org/manual/Code-block-specific-header-arguments.html#Code-block-specific-header-arguments][header arguments]] in a code block request such behavior.
+To get Emacs Lisp to read read an Org file directly, all lines except
+those surrounded by ~#+begin_src elisp~ and ~#+end_src~ should mean
+nothing, and even code surrounding by them should mean nothing if the
+[[https://orgmode.org/manual/Code-block-specific-header-arguments.html#Code-block-specific-header-arguments][header arguments]] in a code block request such behavior.
 
-Here is a trick, a new Emacs lisp reader function get implemented
-(by binding Emacs Lisp variable [[https://www.gnu.org/software/emacs/manual/html_node/elisp/How-Programs-Do-Loading.html][load-read-function]]) to replace original ~read~ function when
-using Emacs Lisp function ~load~ to load an org file.
+The trick is to implement a new Emacs Lisp reader function (by binding
+Emacs Lisp variable [[https://www.gnu.org/software/emacs/manual/html_node/elisp/How-Programs-Do-Loading.html][load-read-function]]) to replace the original ~read~
+function when using Emacs Lisp function ~load~ to load an org file.
 
-The new reader will make Emacs Lisp reader enter into org mode syntax,
-which means it will ignore all lines until it meet ~#+BEGIN_SRC elisp~.
+The new reader will make the Emacs Lisp reader enter into Org mode
+syntax, which means it will ignore all lines until it encounters a
+~#+BEGIN_SRC elisp~.
 
-When ~#+begin_src elisp~ occur, [[https://orgmode.org/manual/Code-block-specific-header-arguments.html#Code-block-specific-header-arguments][header arguments]] for this code block will give us
-a chance to switch back to normal Emacs lisp reader or not.
+When a ~#+begin_src elisp~ is encountered, [[https://orgmode.org/manual/Code-block-specific-header-arguments.html#Code-block-specific-header-arguments][header arguments]] for this
+code block will give us a chance to switch back to normal Emacs Lisp
+reader or not.
 
-And if it switches back to normal Emacs lisp reader, the end line ~#+END_SRC~ should mean the
-end of current code block, if it occurs, then the reader will switch back to org mode syntax.
-If not, then the reader will continue to read subsequent stream
-as like the original Emacs lisp reader.
+And if it switches back to a normal Emacs Lisp reader, the end line
+~#+END_SRC~ should mean the end of current code block, if it occurs,
+then the reader will switch back to Org mode syntax. If not, then the
+reader will continue to read subsequent stream as like the original
+Emacs Lisp reader.
 
 * Implementation
 ** Preparation
 
-We use common lisp macros, along with ~ob-core~ and ~subr-x~ functions, in this library
+We use Common Lisp macros, along with ~ob-core~ and ~subr-x~
+functions, in this library.
 #+BEGIN_SRC elisp
 (require 'cl-lib)
 (require 'ob-core)
 (require 'subr-x)
 #+END_SRC
 
-There is a debug variable to switch on/off the log messages for this library.
+A debug variable to toggle log messages for this library.
 #+BEGIN_SRC elisp
 (defvar literate-elisp-debug-p nil)
 #+END_SRC
-So we can use print debug meesage with this function:
+Debug messages can be printed with this function:
 #+BEGIN_SRC elisp
 (defun literate-elisp-debug (format-string &rest args)
-  "Print debug messages if switch is on.
+  "Print debug messages if `literate-elisp-debug-p' is non-nil.
 Argument FORMAT-STRING: same argument of Emacs function `message',
 Argument ARGS: same argument of Emacs function `message'."
   (when literate-elisp-debug-p
@@ -94,8 +101,9 @@ Argument ARGS: same argument of Emacs function `message'."
 #+END_SRC
 
 
-There is also a dynamic Boolean variable bounded by our read function while parsing is in progress.
-It'll indicate whether org mode syntax or Emacs Lisp mode syntax is in use.
+This is a dynamic Boolean variable bound by our read function
+while parsing is in progress. It'll indicate whether Org mode syntax
+or Emacs Lisp mode syntax is in use.
 #+BEGIN_SRC elisp
 (defvar literate-elisp-org-code-blocks-p nil)
 #+END_SRC
@@ -108,10 +116,11 @@ And the code block begin/end identifiers:
 #+END_SRC
 
 ** stream read functions
-To give us the ability of syntax analysis,
-stream read actions such as ~peek a character~ or ~read and drop next character~ should get implemented.
+To analyze the syntax, we implement stream reading operations such as
+~peek a character~ and ~read and drop next character~.
 
-The [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Input-Streams.html#Input-Streams][input streams]] are the same streams used by the original Emacs Lisp [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Input-Functions.html#Input-Functions][read]] function.
+The [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Input-Streams.html#Input-Streams][input streams]] are the same streams used by the original Emacs Lisp
+[[https://www.gnu.org/software/emacs/manual/html_node/elisp/Input-Functions.html#Input-Functions][read]] function.
 *** literate-elisp-peek
 #+BEGIN_SRC elisp
 (defun literate-elisp-peek (in)
@@ -152,7 +161,7 @@ Argument IN: input stream."
          (funcall in))))
 #+END_SRC
 *** literate-elisp-position
-This functions is a helpful function to debug our library.
+This function is useful for debugging.
 #+BEGIN_SRC elisp
 (defun literate-elisp-position (in)
   "Return the current position from the stream.
@@ -168,13 +177,15 @@ Argument IN: input stream."
 #+END_SRC
 
 *** literate-elisp-read-until-end-of-line
-when read org file character by character, if current line determines as an org syntax,
-then the whole line should ignore, so there should exist such a function.
+When reading an Org file character by character, if the current line
+is determined to be in Org syntax, then the whole line should be ignored.
 
-Before then, let's implement an abstract method to ~read characters repeatly while a predicate matches~.
+Before that, let's implement an abstract method to ~read characters
+repeatly while a predicate matches~.
 
-The ignored string return from this function
-because it may be useful sometimes, for example when reading [[https://orgmode.org/manual/Code-block-specific-header-arguments.html#Code-block-specific-header-arguments][header arguments]] after ~#+begin_src elisp~.
+The ignored string return from this function because it may be useful
+sometimes, for example when reading [[https://orgmode.org/manual/Code-block-specific-header-arguments.html#Code-block-specific-header-arguments][header arguments]] after
+~#+begin_src elisp~.
 #+BEGIN_SRC elisp
 (defun literate-elisp-read-while (in pred)
   "Read and return a string from the input stream, as long as the predicate.
@@ -187,7 +198,7 @@ Argument PRED: predicate function."
     (apply #'string (nreverse chars))))
 #+END_SRC
 
-Now reading until end of line is easy to implement.
+Now reading until the end of line is easy to implement.
 #+BEGIN_SRC elisp
 (defun literate-elisp-read-until-end-of-line (in)
   "Skip over a line (move to `end-of-line').
@@ -197,18 +208,19 @@ Argument IN: input stream."
                               (not (eq ch ?\n))))
     (literate-elisp-next in)))
 #+END_SRC
-** handle org mode syntax
+** handle Org mode syntax
 *** code block header argument ~load~
-There are a lot of different Emacs Lisp codes occur in one org file, some for function implementation,
-some for demo, and some for test, so an [[https://orgmode.org/manual/Structure-of-code-blocks.html][org code block]] [[https://orgmode.org/manual/Code-block-specific-header-arguments.html#Code-block-specific-header-arguments][header argument]] ~load~ to decide to
-read them or not should define, and it has the following meanings:
+Emacs Lisp code in an Org file may serve a variety of
+purposes—implementation, examples, testing, and so on—so we define a
+~load~ [[https://orgmode.org/manual/Structure-of-code-blocks.html][Org code block]] [[https://orgmode.org/manual/Code-block-specific-header-arguments.html#Code-block-specific-header-arguments][header argument]] to decide whether to read them
+or not, which accepts the following values -
 - yes \\
-  It means that current code block should load normally,
-  it is the default mode when the header argument ~load~ is not provided.
+  The current code block should be loaded.
+  This is the default value when the header argument ~load~ is not provided.
 - no \\
-  It means that current code block should ignore by Emacs Lisp reader.
+  The current code block should be ignored.
 - test \\
-  It means that current code block should load only when variable ~literate-elisp-test-p~ is true.
+  The current code block should load only when variable ~literate-elisp-test-p~ is true.
   #+BEGIN_SRC elisp
 (defvar literate-elisp-test-p nil)
   #+END_SRC
@@ -216,7 +228,7 @@ read them or not should define, and it has the following meanings:
 Now let's implement above rule.
 #+BEGIN_SRC elisp
 (defun literate-elisp-load-p (flag)
-  "Load current elisp code block or not.
+  "Return non-nil if the current elisp code block should be loaded.
 Argument FLAG: flag symbol."
   (cl-case flag
     ((yes nil) t)
@@ -225,8 +237,9 @@ Argument FLAG: flag symbol."
     (t nil)))
 #+END_SRC
 
-Let's also implement a function to read [[https://orgmode.org/manual/Code-block-specific-header-arguments.html#Code-block-specific-header-arguments][header arguments]] after ~#+BEGIN_SRC elisp~,
-and convert every key and value to a Emacs Lisp symbol(test is here:ref:test-literate-elisp-read-header-arguments).
+Let's also implement a function to read [[https://orgmode.org/manual/Code-block-specific-header-arguments.html#Code-block-specific-header-arguments][header arguments]] after
+~#+BEGIN_SRC elisp~, and convert every key and value to a Emacs Lisp
+symbol (test is here:ref:test-literate-elisp-read-header-arguments).
 #+BEGIN_SRC elisp
 (defun literate-elisp-read-header-arguments (arguments)
   "Reading org code block header arguments as an alist.
@@ -251,7 +264,8 @@ Argument IN: input stream."
 Sometimes ~#+begin_src elisp~ and ~#+end_src~ may have prefix spaces,
 let's ignore them carefully.
 
-If it is not processed correctly, the reader may enter into an infinite loop, especially when using a custom reader to tangle codes.
+If it is not processed correctly, the reader may enter into an
+infinite loop, especially when using a custom reader to tangle code.
 #+BEGIN_SRC elisp
 (defun literate-elisp-ignore-white-space (in)
   "Skip white space characters.
@@ -262,30 +276,37 @@ Argument IN: input stream."
 #+END_SRC
 
 *** alternative Emacs Lisp read function
-When tangling org file, we want to tangle Emacs Lisp codes without changing them(but Emacs original ~read~ will),
-so let's define a variable to hold the actual Emacs Lisp reader used by us
-then it can be changed when tangling org files(see ref:literate-elisp-tangle-reader).
+The original Emacs ~read~ may change Emacs Lisp code, which we do not
+want. So we define a variable to hold the actual Emacs Lisp reader
+used by us. That way, it can be changed when tangling Org files (see
+ref:literate-elisp-tangle-reader).
 #+BEGIN_SRC elisp
 (defvar literate-elisp-emacs-read (symbol-function 'read))
 #+END_SRC
-We don't use the original symbol ~read~ in ~literate-elisp-read~ because sometimes function ~read~ can be changed by the following Emacs Lisp code
+We don't use the original symbol ~read~ in ~literate-elisp-read~
+because sometimes the function ~read~ can be changed by the following
+Emacs Lisp code
 #+BEGIN_SRC elisp :load no
 (fset 'read (symbol-function 'literate-elisp-read-internal))
 #+END_SRC
-So we can ensure that ~literate-elisp-emacs-read~ will always use the original ~read~ function, which will not be altered when we want to byte compile
-the org file by function ~literate-elisp-byte-compile-file~.
+So we can ensure that ~literate-elisp-emacs-read~ will always use the
+original ~read~ function, which will not be altered when we want to
+byte compile the Org file by function
+~literate-elisp-byte-compile-file~.
 
-*** basic read routine for org mode syntax.
-It's time to implement the main routine to read literate org file.
-The basic idea is simple, ignoring all lines out of Emacs Lisp source block,
-and be careful about the special character ~#~.
+*** basic read routine for Org mode syntax.
+It's time to implement the main routine to read literate org file. The
+basic idea is simple, ignoring all lines out of Emacs Lisp source
+block, and be careful about the special character ~#~.
 
-On the other side, Emacs original ~read~ function will try to skip all comments until
-it can get a valid Emacs Lisp form, so when we call original ~read~ function and
-there are no valid Emacs Lisp form left in one code block,
-it may reach ~#+end_src~, but we can't determine whether the original ~read~ function
-arrive there after a complete parsing or incomplete parsing, to avoid such condition,
-we will filter all comments out to ensure original ~read~ can always have a form to read.
+On the other hand, Emacs' original ~read~ function will try to skip
+all comments until it can get a valid Emacs Lisp form - when we call
+the original ~read~ function and there are no valid Emacs Lisp forms
+left in the code block, it may reach ~#+end_src~, but we can't
+determine whether the original ~read~ function arrived there after a
+complete or incomplete parse. To avoid such a situation, we filter out
+all comments to ensure that the original ~read~ can always have a form
+to read.
 
 #+BEGIN_SRC elisp
 (defun literate-elisp-read-datum (in)
@@ -359,13 +380,13 @@ Argument IN: input stream."
              (?\+
               (let ((line (literate-elisp-read-until-end-of-line in)))
                 (literate-elisp-debug "found org Emacs Lisp end block:%s" line))
-             ;; if it is, then switch to org mode syntax.
+             ;; if it is, then switch to Org mode syntax.
               (setf literate-elisp-org-code-blocks-p nil)
               nil)
              ;; if it is not, then use original Emacs Lisp reader to read the following stream
              (t (funcall literate-elisp-emacs-read in)))))))
 #+END_SRC
-** load/compile org file with new syntax
+** load/compile Org file with new syntax
 *** literate reader is in use when loading an org file
 
 Original function ~read~ will read until it can get a valid lisp form,
@@ -545,22 +566,22 @@ The above support for ~elisp-refs~ does most of the necessary work for supportin
         (apply orig-fun args)))
     (advice-add 'helpful--find-by-macroexpanding :around #'literate-elisp-helpful--find-by-macroexpanding))
 #+END_SRC
-** function to tangle org file to Emacs Lisp file
-To build an Emacs lisp file from an org file without depending on ~literate-elisp~ library,
-we need tangle an org file to an Emacs lisp file(.el).
+** function to tangle Org file to Emacs Lisp file
+To build an Emacs Lisp file from an org file without depending on ~literate-elisp~ library,
+we need tangle an org file to an Emacs Lisp file(.el).
 
-Firstly, when tangle Emacs Lisp codes, we don't want to use original Emacs ~read~ function to read them because it will ignore comment lines
+Firstly, when tangle Emacs Lisp code, we don't want to use original Emacs ~read~ function to read them because it will ignore comment lines
 and it's hard for us to revert them back to a pretty print code, so we define a new reader function and bind it to
 variable ~literate-elisp-read~.
 
-This reader will read codes in a code block without changing them until it reach ~#+end_src~.
+This reader will read code in a code block without changing them until it reach ~#+end_src~.
 
-This feature supports the additional header argument =load= comparing with the function [[https://orgmode.org/manual/Extracting-Source-Code.html][org-babel-tangle]] in org mode.
+This feature supports the additional header argument =load= comparing with the function [[https://orgmode.org/manual/Extracting-Source-Code.html][org-babel-tangle]] in Org mode.
 
 label:literate-elisp-tangle-reader
 #+BEGIN_SRC elisp
 (defun literate-elisp-tangle-reader (&optional buf)
-  "Tangling codes in one code block.
+  "Tangling code in one code block.
 Argument BUF: source buffer."
   (with-output-to-string
       (with-current-buffer buf
@@ -580,7 +601,7 @@ Argument BUF: source buffer."
                  (forward-line 1)))))
 #+END_SRC
 
-Now we can tangle the Emacs Lisp code blocks with the following codes.
+Now we can tangle the Emacs Lisp code blocks with the following code.
 #+BEGIN_SRC elisp
 (cl-defun literate-elisp-tangle (&optional (file (or org-src-source-file-name (buffer-file-name)))
                                  &key (el-file (concat (file-name-sans-extension file) ".el"))
@@ -631,7 +652,7 @@ the following code should execute.
 #+BEGIN_SRC elisp :load no
 (literate-elisp-tangle
  "literate-elisp.org"
- :header ";;; literate-elisp.el --- A library to write Emacs Lisp codes in org mode  -*- lexical-binding: t; -*-
+ :header ";;; literate-elisp.el --- load Emacs Lisp code blocks from Org files  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2018-2019 Jingtao Xu
 
@@ -674,8 +695,8 @@ Now let's check the Emacs Lisp file to meet the requirement of [[https://github.
   (package-lint-current-buffer))
 #+END_SRC
 
-* How to insert code block in org file
-There are various ways to do it, for example you can extend the org mode's [[https://orgmode.org/manual/Easy-templates.html][Easy templates]] to fit your needs.
+* How to insert code block in Org file
+There are various ways to do it, for example you can extend the Org mode's [[https://orgmode.org/manual/Easy-templates.html][Easy templates]] to fit your needs.
 
 I wrote a small Emacs interactive command so it can insert header arguments based on current [[https://orgmode.org/manual/Property-syntax.html][org properties]] automatically.
 Because properties can be inherited from parent sections or whole file scope, so different default value of header arguments can be used,
@@ -688,14 +709,14 @@ The default header arguments to be inserted is specified in a custom variable.
        :omit-value "yes"
        :candidates ("yes" "no" "test"))))
 #+END_SRC
-We try to get the header argument based on current org property or user input.
+We try to get the header argument based on current Org property or user input.
 #+BEGIN_SRC elisp
 (defun literate-elisp-get-header-argument-to-insert (argument-property-name argument-description argument-candidates)
   "Determine the current header argument before inserting a code block.
-Argument ARGUMENT-PROPERTY-NAME the org property name of the header argument.
+Argument ARGUMENT-PROPERTY-NAME the Org property name of the header argument.
 Argument ARGUMENT-DESCRIPTION the description of the header argument.
 Argument ARGUMENT-CANDIDATES the candidates of the header argument."
-  (or (org-entry-get (point) argument-property-name t) ;get it from an org property at current point.
+  (or (org-entry-get (point) argument-property-name t) ;get it from an Org property at current point.
       ;; get it from a candidates list.
       (completing-read argument-description argument-candidates)))
 #+END_SRC
@@ -718,11 +739,11 @@ Let's determine the current literate language before inserting a code block
    literate-elisp-language-candidates))
 #+END_SRC
 
-So you can define org property ~literate-lang~ in a file scope like this in the beginning of an org file
+So you can define Org property ~literate-lang~ in a file scope like this in the beginning of an Org file
 #+BEGIN_EXAMPLE
 #+PROPERTY: literate-lang elisp
 #+END_EXAMPLE
-Or define it in a separate org section with a different default value
+Or define it in a separate Org section with a different default value
 #+BEGIN_EXAMPLE
 This is a section for another literate language
 :PROPERTIES:
@@ -730,20 +751,20 @@ This is a section for another literate language
 :END:
 #+END_EXAMPLE
 
-And you can also define org property ~literate-load~ in a file scope like this in the beginning of org file
+And you can also define Org property ~literate-load~ in a file scope like this in the beginning of Org file
 #+BEGIN_EXAMPLE
 #+PROPERTY: literate-load yes
 #+END_EXAMPLE
-Or define it in a separate org section with a different default value, for example for demo section
+Or define it in a separate Org section with a different default value, for example for demo section
 #+BEGIN_EXAMPLE
-This is a demo section so don't load codes inside it
+This is a demo section so don't load code inside it
 #+PROPERTY:
 :PROPERTIES:
 :literate-load: no
 :END:
 #+END_EXAMPLE
 
-You can also specify additional header arguments to insert for current org file in an org property =literate-header-arguments=.
+You can also specify additional header arguments to insert for current Org file in an Org property =literate-header-arguments=.
 #+BEGIN_SRC elisp
 (defun literate-elisp-additional-header-to-insert ()
   "Return the additional header arguments string."
@@ -760,7 +781,7 @@ Now it's time to implement the insert command
       (insert (format "#+BEGIN_SRC %s" lang))
       (loop for argument-spec in literate-elisp-default-header-arguments-to-insert
             for name = (plist-get argument-spec :name)
-            for value = (literate-elisp-get-header-argument-to-insert 
+            for value = (literate-elisp-get-header-argument-to-insert
                                  (plist-get argument-spec :property)
                                  (plist-get argument-spec :desc)
                                  (plist-get argument-spec :candidates))
@@ -788,7 +809,7 @@ every time there is a new git change.
 ** test cases
 *** test the empty code block
 label:test-empty-code-block
-If one code block is empty, we will use Emacs original ~read~ function, which will read ~#+end_src~
+If one code block is empty, we will use Emacs' original ~read~ function, which will read ~#+end_src~
 and signal an error, let's test whether ~literate-elisp~ can read it gracefully.
 #+BEGIN_SRC elisp :load test
 
@@ -854,7 +875,7 @@ Let's write a test case for the above code block.
 label:test-literate-elisp-read-header-arguments
 #+BEGIN_SRC elisp :load test
 (ert-deftest literate-elisp-read-header-arguments ()
-  "A spec of function to read org header-arguments."
+  "A spec of function to read Org header-arguments."
   (should (equal (literate-elisp-read-header-arguments " :load yes") '((:load . "yes"))))
   (should (equal (literate-elisp-read-header-arguments " :load no  ") '((:load .  "no"))))
   (should (equal (literate-elisp-read-header-arguments ":load yes") '((:load . "yes")))))
