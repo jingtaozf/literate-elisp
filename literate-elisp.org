@@ -210,31 +210,36 @@ Argument IN: input stream."
 #+END_SRC
 ** handle Org mode syntax
 *** code block header argument ~load~
-Emacs Lisp code in an Org file may serve a variety of
+Source blocks in a literate program can serve a variety of
 purposes—implementation, examples, testing, and so on—so we define a
 ~load~ [[https://orgmode.org/manual/Structure-of-code-blocks.html][Org code block]] [[https://orgmode.org/manual/Code-block-specific-header-arguments.html#Code-block-specific-header-arguments][header argument]] to decide whether to read them
 or not, which accepts the following values -
 - yes \\
   The current code block should be loaded.
-  This is the default value when the header argument ~load~ is not provided.
+  This is the default when the header argument ~load~ is not provided.
 - no \\
   The current code block should be ignored.
 - test \\
-  The current code block should load only when variable ~literate-elisp-test-p~ is true.
+  The current code block should load only when the variable ~literate-elisp-test-p~ is true.
+- the name of a variable or function \\
+  The code block is loaded if the value of the variable or the return value of the function is non-nil.
   #+BEGIN_SRC elisp
 (defvar literate-elisp-test-p nil)
   #+END_SRC
 
-Now let's implement above rule.
+Let's implement this behaviour.
 #+BEGIN_SRC elisp
 (defun literate-elisp-load-p (flag)
   "Return non-nil if the current elisp code block should be loaded.
-Argument FLAG: flag symbol."
-  (cl-case flag
-    ((yes nil) t)
-    (test literate-elisp-test-p)
-    (no nil)
-    (t nil)))
+FLAG is the value passed to the :load header argument, as a symbol."
+  (pcase flag
+    ((or 'yes 'nil) t)
+    ('test literate-elisp-test-p)
+    ;; these only seem to work on global definitions
+    ((pred functionp) (funcall flag))
+    ((pred boundp) bar)
+    ('no nil)
+    (_ nil)))
 #+END_SRC
 
 Let's also implement a function to read [[https://orgmode.org/manual/Code-block-specific-header-arguments.html#Code-block-specific-header-arguments][header arguments]] after
@@ -883,6 +888,9 @@ label:test-literate-elisp-read-header-arguments
 
 *** test the ~:load~ header argument
 #+BEGIN_SRC elisp :load test
+(defun literate-elisp-test-predicate-t () t)
+(defun literate-elisp-test-predicate-nil () nil)
+
 (ert-deftest literate-elisp-test-load-argument ()
   (cl-flet ((test-header-args (string)
               (let ((tempbuf (generate-new-buffer " *temp*")))
@@ -896,7 +904,9 @@ label:test-literate-elisp-read-header-arguments
                   (kill-buffer tempbuf)))))
     (should (test-header-args " :load yes"))
     (should-not (test-header-args " :load no  "))
-    (should (test-header-args ":load yes"))))
+    (should (test-header-args ":load yes"))
+    (should (test-header-args ":load literate-elisp-test-predicate-t"))
+    (should-not (test-header-args ":load literate-elisp-test-predicate-nil"))))
 #+END_SRC
 *** report error message when load incomplete code block
 #+BEGIN_SRC elisp :load test
