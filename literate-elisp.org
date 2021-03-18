@@ -12,16 +12,16 @@
 
 * Table of Contents                                            :TOC:noexport:
 - [[#introduction][Introduction]]
-- [[#how-to-do-it][How to do it?]]
+- [[#how-it-works][How it works]]
 - [[#implementation][Implementation]]
   - [[#preparation][Preparation]]
   - [[#stream-read-functions][stream read functions]]
   - [[#handle-org-mode-syntax][handle Org mode syntax]]
-  - [[#loadcompile-org-file-with-new-syntax][load/compile org file with new syntax]]
+  - [[#loadcompile-org-file-with-new-syntax][load/compile Org file with new syntax]]
   - [[#compatibility-with-other-libraries][compatibility with other libraries]]
-  - [[#function-to-tangle-org-file-to-emacs-lisp-file][function to tangle org file to Emacs Lisp file]]
+  - [[#function-to-tangle-org-file-to-emacs-lisp-file][function to tangle Org file to Emacs Lisp file]]
 - [[#release-current-library][Release current library]]
-- [[#how-to-insert-code-block-in-org-file][How to insert code block in org file]]
+- [[#how-to-insert-code-block-in-org-file][How to insert code block in Org file]]
 - [[#tests][Tests]]
   - [[#introduction-1][Introduction]]
   - [[#test-cases][test cases]]
@@ -231,7 +231,7 @@ Let's implement this behaviour.
 #+BEGIN_SRC elisp
 (defun literate-elisp-load-p (flag)
   "Return non-nil if the current elisp code block should be loaded.
-FLAG is the value passed to the :load header argument, as a symbol."
+Argument FLAG: the value passed to the :load header argument, as a symbol."
   (pcase flag
     ((or 'yes 'nil) t)
     ('test literate-elisp-test-p)

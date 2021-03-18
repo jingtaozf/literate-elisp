@@ -123,12 +123,15 @@ Argument IN: input stream."
 
 (defun literate-elisp-load-p (flag)
   "Return non-nil if the current elisp code block should be loaded.
-Argument FLAG: flag symbol."
-  (cl-case flag
-    ((yes nil) t)
-    (test literate-elisp-test-p)
-    (no nil)
-    (t nil)))
+Argument FLAG: the value passed to the :load header argument, as a symbol."
+  (pcase flag
+    ((or 'yes 'nil) t)
+    ('test literate-elisp-test-p)
+    ;; these only seem to work on global definitions
+    ((pred functionp) (funcall flag))
+    ((pred boundp) bar)
+    ('no nil)
+    (_ nil)))
 
 (defun literate-elisp-read-header-arguments (arguments)
   "Reading org code block header arguments as an alist.
