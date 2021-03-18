@@ -120,21 +120,22 @@ For example, This org file can be compiled with the following code.
 Now the target file ~readme.org.elc~ is ready to use.
 
 ** a new code block header argument ~load~
-There are a lot of different Emacs Lisp codes occur in one org file, some for function implementation,
-some for demo, and some for test, so an [[https://orgmode.org/manual/Structure-of-code-blocks.html][org code block]] [[https://orgmode.org/manual/Code-block-specific-header-arguments.html#Code-block-specific-header-arguments][header argument]] ~load~ to decide to
-read them or not should define, and it has the following meanings:
+Source blocks in a literate program can serve a variety of
+purposes—implementation, examples, testing, and so on—so we define a
+~load~ [[https://orgmode.org/manual/Structure-of-code-blocks.html][Org code block]] [[https://orgmode.org/manual/Code-block-specific-header-arguments.html#Code-block-specific-header-arguments][header argument]] to decide whether to read them
+or not, which accepts the following values -
 - yes \\
-  It means that current code block should load normally, 
-  it is the default mode when the header argument ~load~ is not provided.
+  The code block should be loaded normally.
+  This is the default when the header argument ~load~ is not provided.
   #+BEGIN_EXAMPLE
    ,#+BEGIN_SRC elisp :load yes
    (defun a-function-to-load ()
     (message "this function will be loaded by literate-elisp.~%"))
    ,#+END_SRC
   #+END_EXAMPLE
-  
+
 - no \\
-  It means that current code block should ignore by Emacs Lisp reader.
+  The code block should be ignored by the Emacs Lisp reader.
   #+BEGIN_EXAMPLE
    ,#+BEGIN_SRC elisp :load no
    (defun a-function-to-ignore ()
@@ -142,14 +143,15 @@ read them or not should define, and it has the following meanings:
    ,#+END_SRC
   #+END_EXAMPLE
 - test \\
-  It means that current code block should load only when variable ~literate-elisp-test-p~ is true.
+  The code block should be loaded only when the variable ~literate-elisp-test-p~ is true.
   #+BEGIN_EXAMPLE
    ,#+BEGIN_SRC elisp :load test
    (defun a-function-to-test ()
     (message "this function will be loaded by literate-elisp only if literate-elisp-test-p is true.~%"))
    ,#+END_SRC
   #+END_EXAMPLE
-
+- the name of a variable or function \\
+  The code block is loaded if the value of the variable or the return value of the function is non-nil.
 * demo routines
 ** a demo macro
 As a demo org file, we write a simple demo macro ~aif~ here.
