@@ -21,6 +21,8 @@
   - [[#load-an-org-file][load an org file]]
   - [[#byte-compile-an-org-file][byte compile an org file]]
   - [[#a-new-code-block-header-argument-load][a new code block header argument ~load~]]
+- [[#faq][FAQ]]
+  - [[#what-can-i-do-when-it-failed-to-load-some-file][What can I do when it failed to load some file]]
 - [[#demo-routines][demo routines]]
   - [[#a-demo-macro][a demo macro]]
 - [[#a-demo-emacs-configuration][a demo Emacs configuration]]
@@ -152,6 +154,13 @@ or not, which accepts the following values -
   #+END_EXAMPLE
 - the name of a variable or function \\
   The code block is loaded if the value of the variable or the return value of the function is non-nil.
+* FAQ
+** What can I do when it failed to load some file
+- try to use Emacs command =check-parens=.
+- toggle on the debug mode of literate-elisp
+#+begin_src elisp :load no
+(setf literate-elisp-debug-p t)
+#+end_src
 * demo routines
 ** a demo macro
 As a demo org file, we write a simple demo macro ~aif~ here.
