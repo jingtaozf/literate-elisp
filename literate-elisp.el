@@ -35,7 +35,11 @@
 ;; you should read file `literate-elisp.org' to find out the usage and implementation detail of this source file.
 
 
+(eval-when-compile (require 'cl-macs))
+(require 'cl-seq)
 (require 'cl-lib)
+(require 'org)
+(require 'org-src)
 (require 'ob-core)
 (require 'subr-x)
 
@@ -370,21 +374,21 @@ Argument RTN: rtn."
   "Tangling code in one code block.
 Argument BUF: source buffer."
   (with-output-to-string
-      (with-current-buffer buf
-        (when (not (string-blank-p
-                    (buffer-substring (line-beginning-position)
-                                      (point))))
-          ;; if reader still in last line, move it to next line.
-          (forward-line 1))
+    (with-current-buffer buf
+      (when (not (string-blank-p
+                  (buffer-substring (line-beginning-position)
+                                    (point))))
+        ;; if reader still in last line, move it to next line.
+        (forward-line 1))
 
-        (loop for line = (buffer-substring-no-properties (line-beginning-position) (line-end-position))
-              until (or (eobp)
-                        (string-equal (string-trim (downcase line)) "#+end_src"))
-              do (loop for c across line
-                       do (write-char c))
-                 (literate-elisp-debug "tangle Emacs Lisp line %s" line)
-                 (write-char ?\n)
-                 (forward-line 1)))))
+      (cl-loop for line = (buffer-substring-no-properties (line-beginning-position) (line-end-position))
+               until (or (eobp)
+                         (string-equal (string-trim (downcase line)) "#+end_src"))
+               do (cl-loop for c across line
+                           do (write-char c))
+               (literate-elisp-debug "tangle Emacs Lisp line %s" line)
+               (write-char ?\n)
+               (forward-line 1)))))
 
 (cl-defun literate-elisp-tangle (&optional (file (or org-src-source-file-name (buffer-file-name)))
                                  &key (el-file (concat (file-name-sans-extension file) ".el"))
@@ -466,14 +470,14 @@ Argument ARGUMENT-CANDIDATES the candidates of the header argument."
   (let ((lang (literate-elisp-get-language-to-insert)))
     (when lang
       (insert (format "#+BEGIN_SRC %s" lang))
-      (loop for argument-spec in literate-elisp-default-header-arguments-to-insert
-            for name = (plist-get argument-spec :name)
-            for value = (literate-elisp-get-header-argument-to-insert
-                                 (plist-get argument-spec :property)
-                                 (plist-get argument-spec :desc)
-                                 (plist-get argument-spec :candidates))
-            if (and value (not (equal value (plist-get argument-spec :omit-value))))
-              do (insert (format " %s %s" name value)))
+      (cl-loop for argument-spec in literate-elisp-default-header-arguments-to-insert
+               for name = (plist-get argument-spec :name)
+               for value = (literate-elisp-get-header-argument-to-insert
+                            (plist-get argument-spec :property)
+                            (plist-get argument-spec :desc)
+                            (plist-get argument-spec :candidates))
+               if (and value (not (equal value (plist-get argument-spec :omit-value))))
+               do (insert (format " %s %s" name value)))
       (let ((additional-arguments (literate-elisp-additional-header-to-insert)))
         (when additional-arguments
           (insert " " additional-arguments)))
