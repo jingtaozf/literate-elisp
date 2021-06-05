@@ -23,6 +23,7 @@
   - [[#a-new-code-block-header-argument-load][a new code block header argument ~load~]]
 - [[#faq][FAQ]]
   - [[#what-can-i-do-when-it-failed-to-load-some-file][What can I do when it failed to load some file]]
+  - [[#can-i-use-autoload-for-a-elisp-routine-in-an-org-file][Can I use =autoload= for a Elisp routine in an org file?]]
 - [[#demo-routines][demo routines]]
   - [[#a-demo-macro][a demo macro]]
 - [[#a-demo-emacs-configuration][a demo Emacs configuration]]
@@ -161,6 +162,9 @@ or not, which accepts the following values -
 #+begin_src elisp :load no
 (setf literate-elisp-debug-p t)
 #+end_src
+** Can I use =autoload= for a Elisp routine in an org file?
+Yes you can, just like the original function in a elisp source file.
+
 * demo routines
 ** a demo macro
 As a demo org file, we write a simple demo macro ~aif~ here.

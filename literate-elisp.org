@@ -20,6 +20,7 @@
   - [[#loadcompile-org-file-with-new-syntax][load/compile Org file with new syntax]]
   - [[#compatibility-with-other-libraries][compatibility with other libraries]]
   - [[#function-to-tangle-org-file-to-emacs-lisp-file][function to tangle Org file to Emacs Lisp file]]
+  - [[#add-advice-to-emacs-native-load-function][add advice to Emacs native load function]]
 - [[#release-current-library][Release current library]]
 - [[#how-to-insert-code-block-in-org-file][How to insert code block in Org file]]
 - [[#tests][Tests]]
@@ -88,6 +89,7 @@ functions, in this library.
 (require 'org-src)
 (require 'ob-core)
 (require 'subr-x)
+(require 'nadvice); required by macro `define-advice'
 #+END_SRC
 
 A debug variable to toggle log messages for this library.
@@ -655,6 +657,57 @@ Optional argument TEST-P ."
       (save-buffer)
       (kill-current-buffer))))
 #+END_SRC
+** add advice to Emacs native load function
+We can also add advice to load so it can load our org file automatically.
+
+By first, let's create a custom variable to toggle it on or off 
+#+BEGIN_SRC elisp
+(defcustom literate-elisp-auto-load-org t
+  "Whether load and org file from native Emacs load routine."
+  :group 'literate-elisp
+  :type 'boolean)
+#+end_SRC
+
+Then add an advice to load to load org file by our reader sytax.
+#+BEGIN_SRC elisp
+(define-advice load
+    (:around (fn &rest args) literate-elisp)
+  (let ((file (first args)))
+    (if (or (string-suffix-p ".org" file)
+            (string-suffix-p ".org.elc" file))
+      (if literate-elisp-auto-load-org
+        (let ((load-read-function (symbol-function 'literate-elisp-read))
+              (literate-elisp-org-code-blocks-p nil))
+          (apply fn args)))
+      (apply fn args))))
+#+END_SRC
+Now the Emacs =load= function can load org file in our syntax automatically.
+
+But what will happen if we want to use Emacs [[https://www.gnu.org/software/emacs/manual/html_node/eintr/Autoload.html][Autoloading]] feature for an org source file?
+Emacs lisp routine =autoload= will invoke elisp routine =eval-buffer= to eval our org file, so let's try to add an advice
+to this function to enable our reader syntax if necessary.
+#+BEGIN_SRC elisp
+(define-advice eval-buffer
+    (:around (fn &rest args) literate-elisp)
+  (let ((buffer-file (third args)))
+    (if (and buffer-file
+             (or (string-suffix-p ".org" buffer-file)
+                 (string-suffix-p ".org.elc" buffer-file)))
+      (if literate-elisp-auto-load-org
+        (let ((load-read-function (symbol-function 'literate-elisp-read))
+              (literate-elisp-org-code-blocks-p nil))
+          (apply fn args)))
+      (apply fn args))))
+#+END_SRC
+
+Now for example if you have an elisp function =literate-test= defined in org file =literate-test.org=, you can use =autoload=
+in your Emacs script like this:
+#+BEGIN_SRC elisp :load no
+(autoload 'literate-test "~/projects/literate-elisp/literate-test.org" "" nil)
+#+END_SRC
+
+We will keep the routine =literate-elisp-load= for the compatibility with old releases.
+
 * Release current library
 And when a new version of [[./literate-elisp.el]] can release from this file,
 the following code should execute.

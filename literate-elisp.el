@@ -42,6 +42,7 @@
 (require 'org-src)
 (require 'ob-core)
 (require 'subr-x)
+(require 'nadvice); required by macro `define-advice'
 
 (defvar literate-elisp-debug-p nil)
 
@@ -432,6 +433,34 @@ Optional argument TEST-P ."
         (insert "\n" tail))
       (save-buffer)
       (kill-current-buffer))))
+
+(defcustom literate-elisp-auto-load-org t
+  "Whether load and org file from native Emacs load routine."
+  :group 'literate-elisp
+  :type 'boolean)
+
+(define-advice load
+    (:around (fn &rest args) literate-elisp)
+  (let ((file (first args)))
+    (if (or (string-suffix-p ".org" file)
+            (string-suffix-p ".org.elc" file))
+      (if literate-elisp-auto-load-org
+        (let ((load-read-function (symbol-function 'literate-elisp-read))
+              (literate-elisp-org-code-blocks-p nil))
+          (apply fn args)))
+      (apply fn args))))
+
+(define-advice eval-buffer
+    (:around (fn &rest args) literate-elisp)
+  (let ((buffer-file (third args)))
+    (if (and buffer-file
+             (or (string-suffix-p ".org" buffer-file)
+                 (string-suffix-p ".org.elc" buffer-file)))
+      (if literate-elisp-auto-load-org
+        (let ((load-read-function (symbol-function 'literate-elisp-read))
+              (literate-elisp-org-code-blocks-p nil))
+          (apply fn args)))
+      (apply fn args))))
 
 (defvar literate-elisp-default-header-arguments-to-insert
     '((:name :load :property "literate-load" :desc "Source Code Load Type"
