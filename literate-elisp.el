@@ -441,7 +441,7 @@ Optional argument TEST-P ."
 
 (define-advice load
     (:around (fn &rest args) literate-elisp)
-  (let ((file (first args)))
+  (let ((file (car args)))
     (if (or (string-suffix-p ".org" file)
             (string-suffix-p ".org.elc" file))
       (if literate-elisp-auto-load-org
