@@ -36,6 +36,7 @@
 
 
 (eval-when-compile (require 'cl-macs))
+(require 'cl)
 (require 'cl-seq)
 (require 'cl-lib)
 (require 'org)
@@ -452,7 +453,7 @@ Optional argument TEST-P ."
 
 (define-advice eval-buffer
     (:around (fn &rest args) literate-elisp)
-  (let ((buffer-file (third args)))
+  (let ((buffer-file (cl-third args)))
     (if (and buffer-file
              (or (string-suffix-p ".org" buffer-file)
                  (string-suffix-p ".org.elc" buffer-file)))

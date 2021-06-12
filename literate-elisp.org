@@ -689,7 +689,7 @@ to this function to enable our reader syntax if necessary.
 #+BEGIN_SRC elisp
 (define-advice eval-buffer
     (:around (fn &rest args) literate-elisp)
-  (let ((buffer-file (third args)))
+  (let ((buffer-file (cl-third args)))
     (if (and buffer-file
              (or (string-suffix-p ".org" buffer-file)
                  (string-suffix-p ".org.elc" buffer-file)))
