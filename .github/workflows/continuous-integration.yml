@@ -5,7 +5,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        EVM_EMACS: [emacs-25.3-travis, emacs-26.3-travis, emacs-27.1-travis-linux-trusty]
+        EVM_EMACS: [emacs-25.3-travis]
     steps:
     - uses: actions/checkout@v1
     - uses: actions/setup-ruby@v1
