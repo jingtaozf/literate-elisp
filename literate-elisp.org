@@ -16,9 +16,23 @@
 - [[#implementation][Implementation]]
   - [[#preparation][Preparation]]
   - [[#stream-read-functions][stream read functions]]
+    - [[#literate-elisp-peek][literate-elisp-peek]]
+    - [[#literate-elisp-next][literate-elisp-next]]
+    - [[#literate-elisp-position][literate-elisp-position]]
+    - [[#literate-elisp-read-until-end-of-line][literate-elisp-read-until-end-of-line]]
   - [[#handle-org-mode-syntax][handle Org mode syntax]]
+    - [[#code-block-header-argument-load][code block header argument ~load~]]
+    - [[#handle-prefix-spaces][handle prefix spaces.]]
+    - [[#alternative-emacs-lisp-read-function][alternative Emacs Lisp read function]]
+    - [[#basic-read-routine-for-org-mode-syntax][basic read routine for Org mode syntax.]]
+    - [[#how-to-handle-when-meet-][how to handle when meet ~#~]]
   - [[#loadcompile-org-file-with-new-syntax][load/compile Org file with new syntax]]
+    - [[#literate-reader-is-in-use-when-loading-an-org-file][literate reader is in use when loading an org file]]
+    - [[#an-interactive-command-to-load-a-literate-org-file-from-emacs][an interactive command to load a literate org file from Emacs]]
+    - [[#a-function-to-byte-compile-a-literate-org-file][a function to byte compile a literate org file]]
   - [[#compatibility-with-other-libraries][compatibility with other libraries]]
+    - [[#support-for-emacs-lisp-refs][support for Emacs Lisp-Refs]]
+    - [[#support-for-helpful][support for Helpful]]
   - [[#function-to-tangle-org-file-to-emacs-lisp-file][function to tangle Org file to Emacs Lisp file]]
   - [[#add-advice-to-emacs-native-load-function][add advice to Emacs native load function]]
 - [[#release-current-library][Release current library]]
@@ -26,6 +40,14 @@
 - [[#tests][Tests]]
   - [[#introduction-1][Introduction]]
   - [[#test-cases][test cases]]
+    - [[#test-the-empty-code-block][test the empty code block]]
+    - [[#test-code-block-with-prefix-space][test code block with prefix space.]]
+    - [[#test-code-block-with-lowercase-block-delimiters][test code block with lowercase block delimiters]]
+    - [[#test-code-block-with-emacs-lisp-instead-of-elisp][test code block with ~emacs-lisp~ instead of ~elisp~]]
+    - [[#test-code-block-with-indentation][test code block with indentation]]
+    - [[#test-literate-elisp-read-header-arguments][test literate-elisp-read-header-arguments]]
+    - [[#test-the-load-header-argument][test the ~:load~ header argument]]
+    - [[#report-error-message-when-load-incomplete-code-block][report error message when load incomplete code block]]
 - [[#references][References]]
 
 * Introduction
@@ -326,7 +348,7 @@ Argument IN: input stream."
 
   (literate-elisp-ignore-white-space in)
   (let ((ch (literate-elisp-peek in)))
-    (literate-elisp-debug "literate-elisp-read-datum to character '%c'(position:%s)."
+    (literate-elisp-debug "literate-elisp-read-datum to character '%s'(position:%s)."
                           ch (literate-elisp-position in))
 
     (cond
@@ -833,6 +855,13 @@ You can also specify additional header arguments to insert for current Org file 
   (org-entry-get (point) "literate-header-arguments" t))
 #+END_SRC
 
+You can also disable this feature by an org property value in the file
+#+BEGIN_SRC elisp
+(defun literate-elisp-insert-header-argument-p ()
+  "Whether to insert additional header arguments."
+  (not (string= "no" (org-entry-get (point) "literate-insert-header" t))))
+#+END_SRC
+
 Now it's time to implement the insert command
 #+BEGIN_SRC elisp
 (defun literate-elisp-insert-org-src-block ()
@@ -841,14 +870,15 @@ Now it's time to implement the insert command
   (let ((lang (literate-elisp-get-language-to-insert)))
     (when lang
       (insert (format "#+BEGIN_SRC %s" lang))
-      (cl-loop for argument-spec in literate-elisp-default-header-arguments-to-insert
-               for name = (plist-get argument-spec :name)
-               for value = (literate-elisp-get-header-argument-to-insert
-                            (plist-get argument-spec :property)
-                            (plist-get argument-spec :desc)
-                            (plist-get argument-spec :candidates))
-               if (and value (not (equal value (plist-get argument-spec :omit-value))))
-               do (insert (format " %s %s" name value)))
+      (when (literate-elisp-insert-header-argument-p)
+        (cl-loop for argument-spec in literate-elisp-default-header-arguments-to-insert
+                 for name = (plist-get argument-spec :name)
+                 for value = (literate-elisp-get-header-argument-to-insert
+                              (plist-get argument-spec :property)
+                              (plist-get argument-spec :desc)
+                              (plist-get argument-spec :candidates))
+                 if (and value (not (equal value (plist-get argument-spec :omit-value))))
+                 do (insert (format " %s %s" name value))))
       (let ((additional-arguments (literate-elisp-additional-header-to-insert)))
         (when additional-arguments
           (insert " " additional-arguments)))
@@ -979,7 +1009,6 @@ label:test-literate-elisp-read-header-arguments
       (save-buffer))
     (should-error (literate-elisp-load "test/incomplete-code-block.org"))))
 #+END_SRC
-
 * References
 - [[http://www.literateprogramming.com/knuthweb.pdf][Literate. Programming.]] by [[https://www-cs-faculty.stanford.edu/~knuth/lp.html][Donald E. Knuth]]
 - [[http://www.literateprogramming.com/][Literate Programming]]  a site of literate programming

@@ -36,7 +36,6 @@
 
 
 (eval-when-compile (require 'cl-macs))
-(require 'cl)
 (require 'cl-seq)
 (require 'cl-lib)
 (require 'org)
@@ -168,7 +167,7 @@ Argument IN: input stream."
 
   (literate-elisp-ignore-white-space in)
   (let ((ch (literate-elisp-peek in)))
-    (literate-elisp-debug "literate-elisp-read-datum to character '%c'(position:%s)."
+    (literate-elisp-debug "literate-elisp-read-datum to character '%s'(position:%s)."
                           ch (literate-elisp-position in))
 
     (cond
@@ -494,20 +493,25 @@ Argument ARGUMENT-CANDIDATES the candidates of the header argument."
   "Return the additional header arguments string."
   (org-entry-get (point) "literate-header-arguments" t))
 
+(defun literate-elisp-insert-header-argument-p ()
+  "Whether to insert additional header arguments."
+  (not (string= "no" (org-entry-get (point) "literate-insert-header" t))))
+
 (defun literate-elisp-insert-org-src-block ()
   "Insert the source code block in `org-mode'."
   (interactive)
   (let ((lang (literate-elisp-get-language-to-insert)))
     (when lang
       (insert (format "#+BEGIN_SRC %s" lang))
-      (cl-loop for argument-spec in literate-elisp-default-header-arguments-to-insert
-               for name = (plist-get argument-spec :name)
-               for value = (literate-elisp-get-header-argument-to-insert
-                            (plist-get argument-spec :property)
-                            (plist-get argument-spec :desc)
-                            (plist-get argument-spec :candidates))
-               if (and value (not (equal value (plist-get argument-spec :omit-value))))
-               do (insert (format " %s %s" name value)))
+      (when (literate-elisp-insert-header-argument-p)
+        (cl-loop for argument-spec in literate-elisp-default-header-arguments-to-insert
+                 for name = (plist-get argument-spec :name)
+                 for value = (literate-elisp-get-header-argument-to-insert
+                              (plist-get argument-spec :property)
+                              (plist-get argument-spec :desc)
+                              (plist-get argument-spec :candidates))
+                 if (and value (not (equal value (plist-get argument-spec :omit-value))))
+                 do (insert (format " %s %s" name value))))
       (let ((additional-arguments (literate-elisp-additional-header-to-insert)))
         (when additional-arguments
           (insert " " additional-arguments)))
