@@ -1,4 +1,4 @@
-;;; literate-elisp.el --- load Emacs Lisp code blocks from Org files  -*- lexical-binding: t; -*-
+;;; literate-elisp.el --- Load Emacs Lisp code blocks from Org files  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2018-2019 Jingtao Xu
 
@@ -519,6 +519,78 @@ Argument ARGUMENT-CANDIDATES the candidates of the header argument."
       (newline)
       (insert "#+END_SRC\n")
       (forward-line -2))))
+
+(defun literate-elisp-comments-and-top-level-forms (source-file)
+  "Get all comments and top level forms of one source file.
+Argument SOURCE-FILE the path of source file."
+  (with-current-buffer (find-file-noselect source-file)
+    (goto-char (point-min))
+    (loop with items = nil
+          do (unless (search-forward-regexp "^\s*[;|(]" nil t)
+               (setf items (nconc items (list (list :done nil nil))))
+               (return items))
+             (backward-char)
+             (let (toplevel-type
+                   toplevel-name
+                   (start (point)))
+               (if (= ?\; (following-char))
+                 (if (search " -*- " (buffer-substring-no-properties (line-beginning-position) (line-end-position)))
+                   ;; This is a special comment for emacs
+                   (progn
+                     (goto-char (line-end-position))
+                     (setf items (nconc items (list (list :special-comment-for-emacs nil
+                                                          (buffer-substring-no-properties start (line-end-position)))))))
+                   ;; This is a normal comment, let's try to collect the comments lines together
+                   (search-forward-regexp "^\s*(")
+                   (backward-char)
+                   (setf items (nconc items (list (list :comment nil
+                                                        (buffer-substring-no-properties start (1- (line-beginning-position))))))))
+                 ;; If a top level form, let try to determine its type and end position
+                 (save-excursion
+                   (forward-char)
+                   (setf toplevel-type (symbol-at-point))
+                   (when (eq toplevel-type 'eval-when)
+                     (forward-sexp 2)
+                     (search-forward-regexp "^\s*(")
+                     (setf toplevel-type (symbol-at-point)))
+                   (search-forward-regexp "[\s|(|#|:]+")
+                   (setf toplevel-name (string-trim (symbol-name (symbol-at-point)) ":")))
+                 (forward-sexp 1)
+                 (setf items (nconc items (list (list toplevel-type toplevel-name
+                                                      (buffer-substring-no-properties start (point)))))))))))
+
+(defun literate-elisp-import-lisp-file ()
+  "Insert the Lisp source file into current section."
+  (interactive)
+  (let ((package-name (org-entry-get (point) "LITERATE_EXPORT_PACKAGE"))
+        (source-file (org-entry-get (point) "LITERATE_EXPORT_NAME")))
+    (loop with last-comment = nil
+          with first-code-block-p = t
+          for (type name content) in (literate-elisp-comments-and-top-level-forms source-file)
+          do (cond ((and (eq type 'in-package)
+                         (string= package-name name))
+                    ;; ignore in-package when it is the same as the default package here.
+                    )
+                   ((eq type :special-comment-for-emacs)
+                    ;; ignore special comment line
+                    )
+                   ((eq type :comment)
+                    (setf last-comment content))
+                   ((eq type :done)
+                    ;; No more to add.
+                    (return))
+                   (t
+                    (if first-code-block-p
+                      (progn (org-insert-subheading nil)
+                             (setf first-code-block-p nil))
+                      (org-insert-heading nil))
+                    (insert (format "%s %s\n" type name))
+                    (insert "#+BEGIN_SRC lisp\n")
+                    (when last-comment
+                      (insert last-comment "\n")
+                      (setf last-comment nil))
+                    (insert content "\n")
+                    (insert "#+END_SRC\n"))))))
 
 
 (provide 'literate-elisp)
