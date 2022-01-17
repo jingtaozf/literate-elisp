@@ -486,6 +486,7 @@ If you want to literate load file in batch mode, here it is:
 
 *** an interactive command to load a literate org file from Emacs
 #+BEGIN_SRC elisp
+;;;###autoload
 (defun literate-elisp-load-file (file)
   "Load the Lisp file named FILE.
 Argument FILE: target file path."
@@ -500,6 +501,7 @@ Currently(2018.12.16), Emacs [[https://github.com/emacs-mirror/emacs/blob/master
 instead of the function specified by variable ~load-read-function~.so we modify the symbol function
 of ~read~ when byte compiling org file.
 #+BEGIN_SRC elisp
+;;;###autoload
 (defun literate-elisp-byte-compile-file (file &optional load)
   "Byte compile an org file.
 Argument FILE: file to compile.
@@ -648,6 +650,7 @@ Argument BUF: source buffer."
 
 Now we can tangle the Emacs Lisp code blocks with the following code.
 #+BEGIN_SRC elisp
+;;;###autoload
 (cl-defun literate-elisp-tangle (&optional (file (or org-src-source-file-name (buffer-file-name)))
                                  &key (el-file (concat (file-name-sans-extension file) ".el"))
                                 header tail
@@ -876,6 +879,7 @@ You can also disable this feature by an org property value in the file
 
 Now it's time to implement the insert command
 #+BEGIN_SRC elisp
+;;;###autoload
 (defun literate-elisp-insert-org-src-block ()
   "Insert the source code block in `org-mode'."
   (interactive)
@@ -963,6 +967,7 @@ Argument SOURCE-FILE the path of source file."
 #+END_SRC
 ** import codes from one source file
 #+BEGIN_SRC elisp
+;;;###autoload
 (defun literate-elisp-import-lisp-file ()
   "Insert the Lisp source file into current section."
   (interactive)
