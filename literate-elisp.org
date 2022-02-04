@@ -499,6 +499,7 @@ Argument FILE: target file path."
 Currently(2018.12.16), Emacs [[https://github.com/emacs-mirror/emacs/blob/master/lisp/emacs-lisp/bytecomp.el][bytecomp]] library always use function ~read~ to read Emacs Lisp forms,
 instead of the function specified by variable ~load-read-function~.so we modify the symbol function
 of ~read~ when byte compiling org file.
+(This issue has been fixed in the latest Emacs, see [[https://debbugs.gnu.org/cgi/bugreport.cgi?bug=33723][bug 33723]])
 #+BEGIN_SRC elisp
 (defun literate-elisp-byte-compile-file (file &optional load)
   "Byte compile an org file.
