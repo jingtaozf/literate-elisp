@@ -298,7 +298,7 @@ Argument IN: input stream."
         ;; If using `poly-org-mode', then we have to switch to org buffer to access property value.
         (when (and (boundp 'poly-org-mode)
                    poly-org-mode)
-          (pm-set-buffer (plist-get (second (org-element-context)) :begin)))
+          (pm-set-buffer (plist-get (cadr (org-element-context)) :begin)))
         (let ((literate-load (org-entry-get (point) "literate-load" t)))
           (when literate-load
             (intern literate-load)))))))
@@ -918,49 +918,49 @@ This command is used by [[https://github.com/jingtaozf/literate-lisp/#how-to-tan
 Argument SOURCE-FILE the path of source file."
   (with-current-buffer (find-file-noselect source-file)
     (goto-char (point-min))
-    (loop with items = nil
-          do (unless (search-forward-regexp "^\s*[;|(|#]" nil t)
-               (setf items (nconc items (list (list :done nil nil))))
-               (return items))
-             (backward-char)
-             (let (toplevel-type
-                   toplevel-name
-                   (start (point)))
-               (cond ((and (= ?\# (following-char))
-                           (= ?| (char-after (1+ (point)))))
-                      ;; a block of comment surround by #| and |#
-                      (search-forward-regexp "^\s*|#")
-                      (setf items (nconc items (list (list :block-comment nil
-                                                           (buffer-substring-no-properties start (line-end-position)))))))
-                     ((= ?\; (following-char))
-                      (if (search " -*- " (buffer-substring-no-properties (line-beginning-position) (line-end-position)))
-                        ;; This is a special comment for emacs
-                        (progn
-                          (goto-char (line-end-position))
-                          (setf items (nconc items (list (list :special-comment-for-emacs nil
-                                                               (buffer-substring-no-properties start (line-end-position)))))))
-                        ;; This is a normal comment, let's try to collect the comments lines together
-                        (if (search-forward-regexp "^\s*[(|#]" nil t)
-                          (backward-char)
-                          (goto-char (point-max)))
-                        (setf items (nconc items (list (list :comment nil
-                                                             (buffer-substring-no-properties start (1- (line-beginning-position)))))))))
-                     (t ;; If a top level form, let try to determine its type and end position
-                      (when (= ?\# (following-char))
-                        (search-forward "(") 
-                        (backward-char))
-                      (save-excursion
-                        (forward-char)
-                        (setf toplevel-type (symbol-at-point))
-                        (when (eq toplevel-type 'eval-when)
-                          (forward-sexp 2)
-                          (search-forward-regexp "^\s*(")
-                          (setf toplevel-type (symbol-at-point)))
-                        (search-forward-regexp "[\s|(|#|:]+")
-                        (setf toplevel-name (string-trim (symbol-name (symbol-at-point)) ":")))
-                      (forward-sexp 1)
-                      (setf items (nconc items (list (list toplevel-type toplevel-name
-                                                           (buffer-substring-no-properties start (point))))))))))))
+    (cl-loop with items = nil
+             do (unless (search-forward-regexp "^\s*[;|(|#]" nil t)
+                  (setf items (nconc items (list (list :done nil nil))))
+                  (cl-return items))
+                (backward-char)
+                (let (toplevel-type
+                      toplevel-name
+                      (start (point)))
+                  (cond ((and (= ?\# (following-char))
+                              (= ?| (char-after (1+ (point)))))
+                         ;; a block of comment surround by #| and |#
+                         (search-forward-regexp "^\s*|#")
+                         (setf items (nconc items (list (list :block-comment nil
+                                                              (buffer-substring-no-properties start (line-end-position)))))))
+                        ((= ?\; (following-char))
+                         (if (cl-search " -*- " (buffer-substring-no-properties (line-beginning-position) (line-end-position)))
+                             ;; This is a special comment for emacs
+                             (progn
+                               (goto-char (line-end-position))
+                               (setf items (nconc items (list (list :special-comment-for-emacs nil
+                                                                    (buffer-substring-no-properties start (line-end-position)))))))
+                           ;; This is a normal comment, let's try to collect the comments lines together
+                           (if (search-forward-regexp "^\s*[(|#]" nil t)
+                               (backward-char)
+                             (goto-char (point-max)))
+                           (setf items (nconc items (list (list :comment nil
+                                                                (buffer-substring-no-properties start (1- (line-beginning-position)))))))))
+                        (t ;; If a top level form, let try to determine its type and end position
+                         (when (= ?\# (following-char))
+                           (search-forward "(")
+                           (backward-char))
+                         (save-excursion
+                           (forward-char)
+                           (setf toplevel-type (symbol-at-point))
+                           (when (eq toplevel-type 'eval-when)
+                             (forward-sexp 2)
+                             (search-forward-regexp "^\s*(")
+                             (setf toplevel-type (symbol-at-point)))
+                           (search-forward-regexp "[\s|(|#|:]+")
+                           (setf toplevel-name (string-trim (symbol-name (symbol-at-point)) ":")))
+                         (forward-sexp 1)
+                         (setf items (nconc items (list (list toplevel-type toplevel-name
+                                                              (buffer-substring-no-properties start (point))))))))))))
 #+END_SRC
 ** import codes from one source file
 #+BEGIN_SRC elisp
@@ -969,34 +969,34 @@ Argument SOURCE-FILE the path of source file."
   (interactive)
   (let ((package-name (org-entry-get (point) "LITERATE_EXPORT_PACKAGE"))
         (source-file (org-entry-get (point) "LITERATE_EXPORT_NAME")))
-    (loop with last-comment = nil
-          with first-code-block-p = t
-          for (type name content) in (literate-elisp-comments-and-top-level-forms source-file)
-          do (cond ((and (eq type 'in-package)
-                         (string= package-name name))
-                    ;; ignore in-package when it is the same as the default package here.
-                    )
-                   ((eq type :special-comment-for-emacs)
-                    ;; ignore special comment line
-                    )
-                   ((or (eq type :comment)
-                        (eq type :block-comment))
-                    (setf last-comment content))
-                   ((eq type :done)
-                    ;; No more to add.
-                    (return))
-                   (t
-                    (if first-code-block-p
-                      (progn (org-insert-subheading nil)
-                             (setf first-code-block-p nil))
-                      (org-insert-heading nil))
-                    (insert (format "%s %s\n" type name))
-                    (insert "#+BEGIN_SRC lisp\n")
-                    (when last-comment
-                      (insert last-comment "\n")
-                      (setf last-comment nil))
-                    (insert content "\n")
-                    (insert "#+END_SRC\n"))))))
+    (cl-loop with last-comment = nil
+             with first-code-block-p = t
+             for (type name content) in (literate-elisp-comments-and-top-level-forms source-file)
+             do (cond ((and (eq type 'in-package)
+                            (string= package-name name))
+                       ;; ignore in-package when it is the same as the default package here.
+                       )
+                      ((eq type :special-comment-for-emacs)
+                       ;; ignore special comment line
+                       )
+                      ((or (eq type :comment)
+                           (eq type :block-comment))
+                       (setf last-comment content))
+                      ((eq type :done)
+                       ;; No more to add.
+                       (cl-return))
+                      (t
+                       (if first-code-block-p
+                         (progn (org-insert-subheading nil)
+                                (setf first-code-block-p nil))
+                         (org-insert-heading nil))
+                       (insert (format "%s %s\n" type name))
+                       (insert "#+BEGIN_SRC lisp\n")
+                       (when last-comment
+                         (insert last-comment "\n")
+                         (setf last-comment nil))
+                       (insert content "\n")
+                       (insert "#+END_SRC\n"))))))
 #+END_SRC
 
 * Tests
