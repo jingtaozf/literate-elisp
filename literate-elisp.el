@@ -576,7 +576,7 @@ Argument SOURCE-FILE the path of source file."
                            (setf toplevel-name (string-trim (symbol-name (symbol-at-point)) ":")))
                          (forward-sexp 1)
                          (setf items (nconc items (list (list toplevel-type toplevel-name
-                                                              (buffer-substring-no-properties start (point))))))))))))
+                                                              (buffer-substring-no-properties start (line-end-position))))))))))))
 
 (defun literate-elisp-import-lisp-file ()
   "Insert the Lisp source file into current section."
