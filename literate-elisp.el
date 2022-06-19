@@ -35,8 +35,6 @@
 ;; you should read file `literate-elisp.org' to find out the usage and implementation detail of this source file.
 
 
-(eval-when-compile (require 'cl-macs))
-(require 'cl-seq)
 (require 'cl-lib)
 (require 'org)
 (require 'org-src)
@@ -352,8 +350,6 @@ Argument BUFFER: the buffer."
       (literate-elisp--file-is-org-p
        (with-current-buffer buffer elisp-refs--path))
     (funcall orig-fun buffer)))
-(eval-after-load "elisp-refs"
-  '(advice-add 'elisp-refs--read-all-buffer-forms :around #'literate-elisp-refs--read-all-buffer-forms))
 
 (defun literate-elisp-refs--loaded-paths (rtn)
   "Filter return advice to prevent it from ignoring Org files.
@@ -367,18 +363,16 @@ Argument RTN: rtn."
                     else if (and (string-suffix-p ".org.elc" file)
                                  (file-exists-p (substring file 0 -4)))
                     collect (substring file 0 -4)))))
-(eval-after-load "elisp-refs"
-  '(advice-add 'elisp-refs--loaded-paths :filter-return #'literate-elisp-refs--loaded-paths))
 
-  (with-eval-after-load 'helpful
-    (defun literate-elisp-helpful--find-by-macroexpanding (orig-fun &rest args)
-      ":around advice for `helpful--find-by-macroexpanding',
-  to make the `literate-elisp' package comparible with `helpful'."
-      (literate-elisp--replace-read-maybe
-          (literate-elisp--file-is-org-p
-           (with-current-buffer (car args) buffer-file-name))
-        (apply orig-fun args)))
-    (advice-add 'helpful--find-by-macroexpanding :around #'literate-elisp-helpful--find-by-macroexpanding))
+(defun literate-elisp-helpful--find-by-macroexpanding (orig-fun &rest args)
+  "Around advice for `helpful--find-by-macroexpanding'.
+It makes the `literate-elisp' package comparible with `helpful'.
+Argument ORIG-FUN: the original function.
+Argument ARGS: the arguments to original function."
+  (literate-elisp--replace-read-maybe
+      (literate-elisp--file-is-org-p
+       (with-current-buffer (car args) buffer-file-name))
+    (apply orig-fun args)))
 
 (defun literate-elisp-tangle-reader (&optional buf)
   "Tangling code in one code block.

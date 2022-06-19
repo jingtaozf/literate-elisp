@@ -107,8 +107,6 @@ Emacs Lisp reader.
 We use Common Lisp macros, along with ~ob-core~ and ~subr-x~
 functions, in this library.
 #+BEGIN_SRC elisp
-(eval-when-compile (require 'cl-macs))
-(require 'cl-seq)
 (require 'cl-lib)
 (require 'org)
 (require 'org-src)
@@ -581,8 +579,6 @@ Argument BUFFER: the buffer."
       (literate-elisp--file-is-org-p
        (with-current-buffer buffer elisp-refs--path))
     (funcall orig-fun buffer)))
-(eval-after-load "elisp-refs"
-  '(advice-add 'elisp-refs--read-all-buffer-forms :around #'literate-elisp-refs--read-all-buffer-forms))
 
 (defun literate-elisp-refs--loaded-paths (rtn)
   "Filter return advice to prevent it from ignoring Org files.
@@ -596,21 +592,19 @@ Argument RTN: rtn."
                     else if (and (string-suffix-p ".org.elc" file)
                                  (file-exists-p (substring file 0 -4)))
                     collect (substring file 0 -4)))))
-(eval-after-load "elisp-refs"
-  '(advice-add 'elisp-refs--loaded-paths :filter-return #'literate-elisp-refs--loaded-paths))
 #+END_SRC
 *** support for Helpful
 The above support for ~elisp-refs~ does most of the necessary work for supporting ~helpful~; the following is for the edge case of when ~helpful~ starts expanding macros in a source file to find a definition.
 #+BEGIN_SRC elisp
-  (with-eval-after-load 'helpful
-    (defun literate-elisp-helpful--find-by-macroexpanding (orig-fun &rest args)
-      ":around advice for `helpful--find-by-macroexpanding',
-  to make the `literate-elisp' package comparible with `helpful'."
-      (literate-elisp--replace-read-maybe
-          (literate-elisp--file-is-org-p
-           (with-current-buffer (car args) buffer-file-name))
-        (apply orig-fun args)))
-    (advice-add 'helpful--find-by-macroexpanding :around #'literate-elisp-helpful--find-by-macroexpanding))
+(defun literate-elisp-helpful--find-by-macroexpanding (orig-fun &rest args)
+  "Around advice for `helpful--find-by-macroexpanding'.
+It makes the `literate-elisp' package comparible with `helpful'.
+Argument ORIG-FUN: the original function.
+Argument ARGS: the arguments to original function."
+  (literate-elisp--replace-read-maybe
+      (literate-elisp--file-is-org-p
+       (with-current-buffer (car args) buffer-file-name))
+    (apply orig-fun args)))
 #+END_SRC
 ** function to tangle Org file to Emacs Lisp file
 To build an Emacs Lisp file from an org file without depending on ~literate-elisp~ library,

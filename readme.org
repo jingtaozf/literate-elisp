@@ -21,6 +21,9 @@
   - [[#load-an-org-file][load an org file]]
   - [[#byte-compile-an-org-file][byte compile an org file]]
   - [[#a-new-code-block-header-argument-load][a new code block header argument ~load~]]
+  - [[#compatibility-with-other-libraries][compatibility with other libraries]]
+    - [[#support-for-emacs-lisp-refs][support for Emacs Lisp-Refs]]
+    - [[#support-for-library-helpful][support for library helpful]]
 - [[#faq][FAQ]]
   - [[#what-can-i-do-when-it-failed-to-load-some-file][What can I do when it failed to load some file]]
   - [[#can-i-use-autoload-for-a-elisp-routine-in-an-org-file][Can I use =autoload= for a Elisp routine in an org file?]]
@@ -28,6 +31,7 @@
   - [[#a-demo-macro][a demo macro]]
 - [[#a-demo-emacs-configuration][a demo Emacs configuration]]
   - [[#a-demo-configuration][a demo configuration]]
+    -  [[#enable-org-mode-for-org-files][enable org mode for org files]]
   - [[#load-this-org-file-in-emacs][load this org file in .emacs]]
   - [[#packages-written-by-literate-elisp][packages written by literate-elisp]]
 - [[#test][Test]]
@@ -155,6 +159,25 @@ or not, which accepts the following values -
   #+END_EXAMPLE
 - the name of a variable or function \\
   The code block is loaded if the value of the variable or the return value of the function is non-nil.
+** compatibility with other libraries
+We have some extension to keep compatibility with other libraries, the following sections show how to setup them. 
+*** support for Emacs Lisp-Refs
+#+BEGIN_SRC elisp
+;; ;; To make `elisp-refs' work with `literate-elisp', we need to add an advice to `elisp-refs--read-all-buffer-forms'.
+(eval-after-load "elisp-refs"
+  '(advice-add 'elisp-refs--read-all-buffer-forms :around #'literate-elisp-refs--read-all-buffer-forms))
+
+;; To make `elisp-refs' work with `literate-elisp', we need to add an advice to `elisp-refs--loaded-paths'.
+(eval-after-load "elisp-refs"
+  '(advice-add 'elisp-refs--loaded-paths :filter-return #'literate-elisp-refs--loaded-paths))
+#+END_SRC
+*** support for library helpful
+#+BEGIN_SRC elisp
+;; To make `helpful' work with `literate-elisp', we need to add an advice to `helpful--find-by-macroexpanding'.
+(with-eval-after-load 'helpful
+  (advice-add 'helpful--find-by-macroexpanding :around #'literate-elisp-helpful--find-by-macroexpanding))
+#+END_SRC
+
 * FAQ
 ** What can I do when it failed to load some file
 - try to use Emacs command =check-parens=.
