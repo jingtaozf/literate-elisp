@@ -690,7 +690,7 @@ Optional argument TEST-P ."
 ** add advice to Emacs native load function
 We can also add advice to load so it can load our org file automatically.
 
-By first, let's create a custom variable to toggle it on or off 
+By first, let's create a custom variable to toggle it on or off.
 #+BEGIN_SRC elisp
 (defcustom literate-elisp-auto-load-org t
   "Whether load and org file from native Emacs load routine."
