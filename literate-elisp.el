@@ -132,7 +132,7 @@ Argument FLAG: the value passed to the :load header argument, as a symbol."
     ('test literate-elisp-test-p)
     ;; these only seem to work on global definitions
     ((pred functionp) (funcall flag))
-    ((pred boundp) bar)
+    ((pred boundp) flag)
     ('no nil)
     (_ nil)))
 
@@ -209,7 +209,6 @@ Argument IN: input stream."
                  ;; followed by `elisp' or `emacs-lisp'
                  (cl-loop with lang = ; this inner loop grabs the language specifier
                           (cl-loop while (not (memq (literate-elisp-peek in) '(?\s ?\t ?\n)))
-                                   with rtn
                                    collect (literate-elisp-next in) into rtn
                                    finally return (apply 'string rtn))
                           for id in literate-elisp-lang-ids
@@ -304,7 +303,9 @@ Arguemnt LOAD: load the file after compiling."
         (original-read (symbol-function 'read)))
     (fset 'read (symbol-function 'literate-elisp-read-internal))
     (unwind-protect
-        (byte-compile-file file load)
+        (byte-compile-file file)
+      (when load
+        (load (byte-compile-dest-file file)))
       (fset 'read original-read))))
 
 (defun literate-elisp-find-library-name (orig-fun &rest args)
@@ -348,7 +349,7 @@ Argument ORIG-FUN: the original function.
 Argument BUFFER: the buffer."
   (literate-elisp--replace-read-maybe
       (literate-elisp--file-is-org-p
-       (with-current-buffer buffer elisp-refs--path))
+       (with-current-buffer buffer (symbol-value 'elisp-refs--path)))
     (funcall orig-fun buffer)))
 
 (defun literate-elisp-refs--loaded-paths (rtn)
