@@ -351,6 +351,11 @@ Argument SYMBOLS-WITH-POS: non-nil if forms are to be read with
 `read-positioning-symbols' (Emacs 29+ only) instead of `read'. (For
 compatiblity, this is only passed to the original function if it is
 specified in the function call.)"
+  ;; FIXME as `literate-elisp--replace-read-maybe' replaces `read'
+  ;; with `literate-elisp-read-internal' where necessary, we need to
+  ;; add a literate-elisp equivalent to the new
+  ;; `read-positioning-symbols' function, and make this advice aware
+  ;; of when to make the switch for that as well.
   (literate-elisp--replace-read-maybe
       (literate-elisp--file-is-org-p
        (with-current-buffer buffer (symbol-value 'elisp-refs--path)))
