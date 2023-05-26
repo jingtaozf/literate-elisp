@@ -343,16 +343,20 @@ will be temporarily set to that of `literate-elisp-read-internal'
                 literate-elisp-emacs-read)))
      ,@body))
 
-(defun literate-elisp-refs--read-all-buffer-forms (orig-fun buffer symbols-with-pos)
+(cl-defun literate-elisp-refs--read-all-buffer-forms (orig-fun buffer &optional (symbols-with-pos nil swp-p))
   "Around advice to make `literate-elisp' package comparible with `elisp-refs'.
 Argument ORIG-FUN: the original function.
 Argument BUFFER: the buffer.
 Argument SYMBOLS-WITH-POS: non-nil if forms are to be read with
-`read-positioning-symbols' (Emacs 29+ only) instead of `read'."
+`read-positioning-symbols' (Emacs 29+ only) instead of `read'. (For
+compatiblity, this is only passed to the original function if it is
+specified in the function call.)"
   (literate-elisp--replace-read-maybe
       (literate-elisp--file-is-org-p
        (with-current-buffer buffer (symbol-value 'elisp-refs--path)))
-    (funcall orig-fun buffer symbols-with-pos)))
+    (if swp-p
+        (funcall orig-fun buffer symbols-with-pos)
+      (funcall orig-fun buffer))))
 
 (defun literate-elisp-refs--loaded-paths (rtn)
   "Filter return advice to prevent it from ignoring Org files.
