@@ -15,6 +15,8 @@
 - [[#how-it-works][How it works]]
 - [[#implementation][Implementation]]
   - [[#preparation][Preparation]]
+  - [[#utilities][Utilities]]
+    - [[#completion-read][completion read]]
   - [[#stream-read-functions][stream read functions]]
     - [[#literate-elisp-peek][literate-elisp-peek]]
     - [[#literate-elisp-next][literate-elisp-next]]
@@ -40,6 +42,7 @@
 - [[#how-to-import-source-files-into-org-subsection][How to import source files into org subsection]]
   - [[#get-all-comments-and-top-level-forms-of-one-source-file][get all comments and top level forms of one source file]]
   - [[#import-codes-from-one-source-file][import codes from one source file]]
+  - [[#convert-a-source-file-to-org-file][convert a source file to org file]]
 - [[#tests][Tests]]
   - [[#introduction-1][Introduction]]
   - [[#test-cases][test cases]]
@@ -142,6 +145,18 @@ And the code block begin/end identifiers:
 (defvar literate-elisp-begin-src-id "#+BEGIN_SRC")
 (defvar literate-elisp-end-src-id "#+END_SRC")
 (defvar literate-elisp-lang-ids (list "elisp" "emacs-lisp"))
+#+END_SRC
+
+** Utilities
+
+*** completion read
+#+BEGIN_SRC elisp
+(defun literate-elisp-comp-read (prompt collection)
+  "Read a completion from the minibuffer."
+  (interactive)
+  (if (fboundp 'helm-comp-read)
+    (helm-comp-read prompt collection)
+    (completing-read prompt collection)))
 #+END_SRC
 
 ** stream read functions
@@ -810,7 +825,7 @@ Argument ARGUMENT-DESCRIPTION the description of the header argument.
 Argument ARGUMENT-CANDIDATES the candidates of the header argument."
   (or (org-entry-get (point) argument-property-name t) ;get it from an Org property at current point.
       ;; get it from a candidates list.
-      (completing-read argument-description argument-candidates)))
+      (literate-elisp-comp-read argument-description argument-candidates)))
 #+END_SRC
 
 Let's define a language list we want to support
@@ -828,7 +843,9 @@ Let's determine the current literate language before inserting a code block
   "Determine the current literate language before inserting a code block."
   (literate-elisp-get-header-argument-to-insert
    "literate-lang" "Source Code Language: "
-   literate-elisp-language-candidates))
+   (or (awhen (org-entry-get (point) "LITERATE_ORG_LANGUAGES" t)
+         (split-string it))
+       literate-elisp-language-candidates)))
 #+END_SRC
 
 So you can define Org property ~literate-lang~ in a file scope like this in the beginning of an Org file
@@ -908,6 +925,11 @@ then import the top level forms there in sub sections.
 This command is used by [[https://github.com/jingtaozf/literate-lisp/#how-to-tangle-to-a-bundle-of-lisp-files-from-one-org-file][literate-lisp]] mainly for now.
 ** get all comments and top level forms of one source file
 #+BEGIN_SRC elisp
+(defcustom literate-elisp-valid-top-level-types
+  '("defun" "defmacro" "defpackage" "defvar" "defparameter" "defconstant" "defstruct" "defclass" "defgeneric" "defmethod" "defsetf")
+  "Valid top level types in a lisp file."
+  :group 'literate-elisp
+  :type 'list)
 (defun literate-elisp-comments-and-top-level-forms (source-file)
   "Get all comments and top level forms of one source file.
 Argument SOURCE-FILE the path of source file."
@@ -992,6 +1014,47 @@ Argument SOURCE-FILE the path of source file."
                          (setf last-comment nil))
                        (insert content "\n")
                        (insert "#+END_SRC\n"))))))
+#+END_SRC
+** convert a source file to org file 
+#+BEGIN_SRC elisp
+(defun literate-elisp-covnert-clojure-file ()
+  "Replace current clojure file into org syntax."
+  (interactive)
+  (cl-loop with last-comment = nil
+           with first-code-block-p = t
+           with source-file = (buffer-file-name)
+           with name-and-content-list = (literate-elisp-comments-and-top-level-forms source-file)
+           initially (delete-region (point-min) (point-max))
+           (poly-org-mode)
+           (insert "# -*- encoding:utf-8; Mode: POLY-ORG;  -*- ---
+#+Title: 
+#+SubTitle: 
+#+OPTIONS: toc:2
+#+STARTUP: noindent
+#+STARTUP: inlineimages
+#+PROPERTY: literate-lang clojure
+#+PROPERTY: literate-load yes\n")
+
+           for (type name content) in name-and-content-list
+           do (cond 
+                    ((or (eq type :comment)
+                         (eq type :block-comment))
+                     (setf last-comment content))
+                    ((eq type :done)
+                     ;; No more to add.
+                     (cl-return))
+                    (t
+                     (if first-code-block-p
+                         (progn (org-insert-subheading nil)
+                                (setf first-code-block-p nil))
+                         (org-insert-heading nil))
+                     (insert (format "%s %s\n" type name))
+                     (insert "#+BEGIN_SRC clojure\n")
+                     (when last-comment
+                       (insert last-comment "\n")
+                       (setf last-comment nil))
+                     (insert content "\n")
+                     (insert "#+END_SRC\n")))))
 #+END_SRC
 
 * Tests

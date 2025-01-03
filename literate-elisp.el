@@ -57,6 +57,13 @@ Argument ARGS: same argument of Emacs function `message'."
 (defvar literate-elisp-end-src-id "#+END_SRC")
 (defvar literate-elisp-lang-ids (list "elisp" "emacs-lisp"))
 
+(defun literate-elisp-comp-read (prompt collection)
+  "Read a completion from the minibuffer."
+  (interactive)
+  (if (fboundp 'helm-comp-read)
+    (helm-comp-read prompt collection)
+    (completing-read prompt collection)))
+
 (defun literate-elisp-peek (in)
   "Return the next character without dropping it from the stream.
 Argument IN: input stream."
@@ -478,7 +485,7 @@ Argument ARGUMENT-DESCRIPTION the description of the header argument.
 Argument ARGUMENT-CANDIDATES the candidates of the header argument."
   (or (org-entry-get (point) argument-property-name t) ;get it from an Org property at current point.
       ;; get it from a candidates list.
-      (completing-read argument-description argument-candidates)))
+      (literate-elisp-comp-read argument-description argument-candidates)))
 
 (defvar literate-elisp-language-candidates
     '("lisp" "elisp" "axiom" "spad" "python" "C" "sh" "java" "js" "clojure" "clojurescript" "C++" "css"
@@ -491,7 +498,9 @@ Argument ARGUMENT-CANDIDATES the candidates of the header argument."
   "Determine the current literate language before inserting a code block."
   (literate-elisp-get-header-argument-to-insert
    "literate-lang" "Source Code Language: "
-   literate-elisp-language-candidates))
+   (or (awhen (org-entry-get (point) "LITERATE_ORG_LANGUAGES" t)
+         (split-string it))
+       literate-elisp-language-candidates)))
 
 (defun literate-elisp-additional-header-to-insert ()
   "Return the additional header arguments string."
@@ -524,6 +533,11 @@ Argument ARGUMENT-CANDIDATES the candidates of the header argument."
       (insert "#+END_SRC\n")
       (forward-line -2))))
 
+(defcustom literate-elisp-valid-top-level-types
+  '("defun" "defmacro" "defpackage" "defvar" "defparameter" "defconstant" "defstruct" "defclass" "defgeneric" "defmethod" "defsetf")
+  "Valid top level types in a lisp file."
+  :group 'literate-elisp
+  :type 'list)
 (defun literate-elisp-comments-and-top-level-forms (source-file)
   "Get all comments and top level forms of one source file.
 Argument SOURCE-FILE the path of source file."
@@ -606,6 +620,45 @@ Argument SOURCE-FILE the path of source file."
                          (setf last-comment nil))
                        (insert content "\n")
                        (insert "#+END_SRC\n"))))))
+
+(defun literate-elisp-covnert-clojure-file ()
+  "Replace current clojure file into org syntax."
+  (interactive)
+  (cl-loop with last-comment = nil
+           with first-code-block-p = t
+           with source-file = (buffer-file-name)
+           with name-and-content-list = (literate-elisp-comments-and-top-level-forms source-file)
+           initially (delete-region (point-min) (point-max))
+           (poly-org-mode)
+           (insert "# -*- encoding:utf-8; Mode: POLY-ORG;  -*- ---
+#+Title: 
+#+SubTitle: 
+#+OPTIONS: toc:2
+#+STARTUP: noindent
+#+STARTUP: inlineimages
+#+PROPERTY: literate-lang clojure
+#+PROPERTY: literate-load yes\n")
+
+           for (type name content) in name-and-content-list
+           do (cond 
+                    ((or (eq type :comment)
+                         (eq type :block-comment))
+                     (setf last-comment content))
+                    ((eq type :done)
+                     ;; No more to add.
+                     (cl-return))
+                    (t
+                     (if first-code-block-p
+                         (progn (org-insert-subheading nil)
+                                (setf first-code-block-p nil))
+                         (org-insert-heading nil))
+                     (insert (format "%s %s\n" type name))
+                     (insert "#+BEGIN_SRC clojure\n")
+                     (when last-comment
+                       (insert last-comment "\n")
+                       (setf last-comment nil))
+                     (insert content "\n")
+                     (insert "#+END_SRC\n")))))
 
 
 (provide 'literate-elisp)
