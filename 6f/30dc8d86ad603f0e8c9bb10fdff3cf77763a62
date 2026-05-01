@@ -1,0 +1,25 @@
+CLAUDE.md
+  d71b45c1f414a66e 113-129
+.pre-commit-config.yaml
+  d71b45c1f414a66e 1-21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "6f30dc8d86ad603f0e8c9bb10fdff3cf77763a62",
+  "prompts": {
+    "d71b45c1f414a66e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "53b5ceab-5a31-49e0-97a4-c1291d1ea9e6",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Jingtao Xu",
+      "messages": [],
+      "total_additions": 38,
+      "total_deletions": 1,
+      "accepted_lines": 38,
+      "overriden_lines": 0
+    }
+  }
+}
