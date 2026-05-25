@@ -1,0 +1,19 @@
+.github/workflows/continuous-integration.yml
+  s_f96bae323fcdab::t_08a96df43a3879 2,7,9-12,14-17,19-26,28-42
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.1",
+  "base_commit_sha": "080e663902d40030c4a43664944d977fe18e3df8",
+  "prompts": {},
+  "sessions": {
+    "s_f96bae323fcdab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "70eaa012-d760-413a-826a-a321bd44a13f",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Jingtao Xu <user.name>"
+    }
+  }
+}
