@@ -1,0 +1,24 @@
+readme.org
+  s_f96bae323fcdab::t_51c753edaf604c 144-148
+literate-elisp.org
+  s_f96bae323fcdab::t_990986e0eb06c4 767
+  s_f96bae323fcdab::t_2b541489c86b80 848
+.github/workflows/continuous-integration.yml
+  s_f96bae323fcdab::t_c0f5fb67e77586 34,36-39
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.1",
+  "base_commit_sha": "606cbf784aa744c2996655c3dee1225d5204728c",
+  "prompts": {},
+  "sessions": {
+    "s_f96bae323fcdab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "70eaa012-d760-413a-826a-a321bd44a13f",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Jingtao Xu <user.name>"
+    }
+  }
+}
