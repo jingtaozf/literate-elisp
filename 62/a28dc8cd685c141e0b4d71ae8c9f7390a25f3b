@@ -1,0 +1,29 @@
+literate-elisp.el
+  s_f96bae323fcdab::t_43ced4edf445d3 476-512,525-538
+  s_f96bae323fcdab::t_f0de5961c1569f 513-524
+literate-elisp.org
+  s_f96bae323fcdab::t_2016b48f60f8f8 880
+  s_f96bae323fcdab::t_c334f65fc7c5e3 757-867
+tests/test-no-cookie.org
+  s_f96bae323fcdab::t_6f3422fc74fe8c 1-32
+readme.org
+  s_f96bae323fcdab::t_1d9f816374f5c9 130-160
+tests/test-lexical-binding.org
+  s_f96bae323fcdab::t_4d82a2996f0ac8 1-140
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.1",
+  "base_commit_sha": "62a28dc8cd685c141e0b4d71ae8c9f7390a25f3b",
+  "prompts": {},
+  "sessions": {
+    "s_f96bae323fcdab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "70eaa012-d760-413a-826a-a321bd44a13f",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Jingtao Xu <user.name>"
+    }
+  }
+}
