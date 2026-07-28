@@ -251,6 +251,21 @@ Argument ARGUMENTS: a string to hold the arguments."
 #+END_SRC
 
 Let's define a convenient function to get load flag from the input stream.
+
+The fallback to the org property =literate-load= reads it from
+whatever buffer is current, which only means the file being loaded
+when the user runs ~literate-elisp-load~ from that file's own buffer.
+Called from anywhere else — a hook, another package, an editor RPC —
+it interrogates an unrelated buffer, so the guard below asks the
+property only while an org buffer is current and otherwise returns
+nil, which ~literate-elisp-load-p~ already treats as "load".
+
+The guard is not merely tidiness.  Under Emacs 31 with Org 9.8,
+~org-entry-get~ in, say, a Markdown buffer runs Org's headline parser
+against that buffer's own ~outline-regexp~, derives a headline of
+level 0, and ~org-headline-re~ signals =rx ‘**’ range error= — every
+literate load in that session fails until the current buffer happens
+to change.
 #+BEGIN_SRC elisp
 (defun literate-elisp-get-load-option (in)
   "Read load option from input stream.
@@ -266,9 +281,12 @@ Argument IN: input stream."
         (when (and (boundp 'poly-org-mode)
                    poly-org-mode)
           (pm-set-buffer (plist-get (cadr (org-element-context)) :begin)))
-        (let ((literate-load (org-entry-get (point) "literate-load" t)))
-          (when literate-load
-            (intern literate-load)))))))
+        ;; Only an org buffer can answer for `literate-load'; anything
+        ;; else is a different file that knows nothing about this load.
+        (when (derived-mode-p 'org-mode)
+          (let ((literate-load (org-entry-get (point) "literate-load" t)))
+            (when literate-load
+              (intern literate-load))))))))
 #+END_SRC
 
 
@@ -1190,6 +1208,43 @@ Let's write a test case for the above code block.
 (ert-deftest literate-elisp-read-block-with-indentation ()
   "A spec of code block with indentation on the first line."
   (should (equal literate-elisp-test-variable-4 40)))
+#+END_SRC
+
+*** test loading while a foreign buffer is current
+A load started from somewhere other than the org file's own buffer —
+a hook, another package, an editor RPC — leaves that foreign buffer
+current while ~literate-elisp-get-load-option~ falls back to the
+=literate-load= property.  Asking a Markdown buffer for an Org
+property is meaningless, and under Emacs 31 with Org 9.8 it is fatal:
+Org runs its headline parser against the buffer's own
+~outline-regexp~, derives a headline of level 0, and
+~org-headline-re~ signals =rx ‘**’ range error=.
+
+Reproducing it takes a real Markdown buffer with real content —
+setting ~outline-regexp~ by hand is not enough, because Org's parser
+only reaches the failing branch when the buffer's own outline
+machinery matches something at point.  The test therefore skips where
+~markdown-mode~ is absent rather than pretending a synthetic buffer
+is equivalent.
+#+BEGIN_SRC elisp :load test
+(ert-deftest literate-elisp-load-from-foreign-buffer ()
+  "Loading must not consult an unrelated current buffer for `literate-load'."
+  (skip-unless (require 'markdown-mode nil t))
+  (let ((file (make-temp-file "literate-elisp-foreign-" nil ".org")))
+    (unwind-protect
+        (progn
+          (with-temp-file file
+            (insert "* One\n\n#+BEGIN_SRC elisp\n"
+                    "(defvar literate-elisp-test-variable-5 50)\n"
+                    "#+END_SRC\n"))
+          (makunbound 'literate-elisp-test-variable-5)
+          (with-temp-buffer
+            (markdown-mode)
+            (insert "# heading\n\ntext\n")
+            (goto-char 3)
+            (literate-elisp-load file))
+          (should (equal literate-elisp-test-variable-5 50)))
+      (delete-file file))))
 #+END_SRC
 
 *** test literate-elisp-read-header-arguments

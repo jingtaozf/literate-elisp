@@ -162,9 +162,12 @@ Argument IN: input stream."
         (when (and (boundp 'poly-org-mode)
                    poly-org-mode)
           (pm-set-buffer (plist-get (cadr (org-element-context)) :begin)))
-        (let ((literate-load (org-entry-get (point) "literate-load" t)))
-          (when literate-load
-            (intern literate-load)))))))
+        ;; Only an org buffer can answer for `literate-load'; anything
+        ;; else is a different file that knows nothing about this load.
+        (when (derived-mode-p 'org-mode)
+          (let ((literate-load (org-entry-get (point) "literate-load" t)))
+            (when literate-load
+              (intern literate-load))))))))
 
 (defun literate-elisp-ignore-white-space (in)
   "Skip white space characters.
