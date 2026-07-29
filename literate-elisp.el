@@ -565,8 +565,8 @@ Argument ARGUMENT-CANDIDATES the candidates of the header argument."
   "Determine the current literate language before inserting a code block."
   (literate-elisp-get-header-argument-to-insert
    "literate-lang" "Source Code Language: "
-   (or (awhen (org-entry-get (point) "LITERATE_ORG_LANGUAGES" t)
-         (split-string it))
+   (or (when-let* ((langs (org-entry-get (point) "LITERATE_ORG_LANGUAGES" t)))
+         (split-string langs))
        literate-elisp-language-candidates)))
 
 (defun literate-elisp-additional-header-to-insert ()
